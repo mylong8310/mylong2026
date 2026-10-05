@@ -1,179 +1,44 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>主体性、经验主义与反馈机制</title>
-<style>
-  * { box-sizing: border-box; }
-  html, body { margin:0; padding:0; background:#ece8df; font-family:'Noto Sans CJK SC','Microsoft YaHei',sans-serif; color:#182331; }
-  body { width:100%; min-height:100vh; }
-  .sheet { width:100%; max-width:1080px; margin:0 auto; padding:68px 72px 62px; background:linear-gradient(180deg,#f8f5ee 0%,#f2efe7 100%); }
-  .hero { background:#16283a; color:white; border-radius:32px; padding:54px 56px 48px; position:relative; overflow:hidden; }
-  .hero:after { content:""; position:absolute; right:-90px; top:-90px; width:300px; height:300px; border-radius:50%; border:56px solid rgba(255,255,255,.05); }
-  .eyebrow { font-size:22px; letter-spacing:3px; color:#b9d3df; font-weight:700; }
-  h1 { font-size:58px; line-height:1.16; margin:16px 0 18px; letter-spacing:-1px; }
-  .subtitle { font-size:26px; line-height:1.65; color:#dce7ec; max-width:850px; }
-  .hero-quote { margin-top:34px; padding:22px 26px; border-left:6px solid #efb85b; background:rgba(255,255,255,.06); border-radius:12px; font-size:28px; line-height:1.6; font-weight:700; }
-  .section { margin-top:36px; background:#fffdf8; border-radius:26px; padding:38px 40px; border:1px solid #ded9cf; box-shadow:0 8px 28px rgba(35,45,55,.05); }
-  .section-title { display:flex; align-items:center; gap:14px; font-size:32px; font-weight:700; margin-bottom:22px; color:#16283a; }
-  .num { width:44px; height:44px; border-radius:14px; background:#16283a; color:#fff; display:inline-flex; align-items:center; justify-content:center; font-size:22px; flex:none; }
-  .lead { font-size:26px; line-height:1.7; margin:0; }
-  .accent { color:#9b5a18; font-weight:700; }
-  .formula { margin:24px 0 6px; background:#f1eee6; border-radius:18px; padding:22px 26px; text-align:center; font-size:26px; line-height:1.6; font-weight:700; color:#263b4d; }
-  .two { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
-  .card { background:#f7f4ed; border:1px solid #e2ddd3; border-radius:20px; padding:24px 26px; }
-  .card h3 { margin:0 0 10px; font-size:25px; color:#1c3448; }
-  .card p, .card li { font-size:21px; line-height:1.65; }
-  .card ul { padding-left:24px; margin:10px 0 0; }
-  .good { border-top:6px solid #5b8a72; }
-  .warn { border-top:6px solid #c16d45; }
-  .grid6 { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
-  .v { padding:20px 22px; border-radius:18px; background:#f5f2eb; border:1px solid #e0dbd1; }
-  .v b { display:block; font-size:24px; margin-bottom:8px; color:#18364b; }
-  .v span { font-size:20px; line-height:1.55; color:#4b5963; }
-  .flow { display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:10px; margin:22px 0 0; }
-  .step { min-width:126px; padding:17px 16px; border-radius:16px; background:#e9f0f3; border:1px solid #cad8df; font-size:21px; font-weight:700; text-align:center; }
-  .arrow { font-size:28px; color:#7a8790; }
-  .badflow .step { background:#f4e9e5; border-color:#dfc6bb; }
-  .split-title { font-size:22px; font-weight:700; margin:22px 0 10px; color:#56616a; text-transform:uppercase; letter-spacing:1px; }
-  .quote-box { background:#203d50; color:#fff; padding:28px 30px; border-radius:22px; font-size:26px; line-height:1.65; font-weight:700; }
-  .sayings { font-size:31px; line-height:1.65; text-align:center; letter-spacing:2px; font-weight:700; color:#3f2e1f; background:#efe5d3; border-radius:20px; padding:24px; }
-  .micro { font-size:19px; line-height:1.65; color:#66717a; }
-  .compare { width:100%; border-collapse:separate; border-spacing:0; overflow:hidden; border-radius:18px; border:1px solid #ded9cf; }
-  .compare th, .compare td { padding:18px 20px; font-size:20px; line-height:1.5; vertical-align:top; border-bottom:1px solid #e4dfd6; }
-  .compare th { background:#21394c; color:white; font-size:21px; }
-  .compare tr:last-child td { border-bottom:none; }
-  .compare td:first-child { width:26%; font-weight:700; color:#223d51; background:#f4f1ea; }
-  .checklist { display:grid; grid-template-columns:1fr; gap:12px; counter-reset:item; }
-  .check { position:relative; padding:16px 18px 16px 58px; background:#f6f3ec; border-radius:16px; font-size:21px; line-height:1.55; }
-  .check:before { counter-increment:item; content:counter(item); position:absolute; left:16px; top:14px; width:30px; height:30px; border-radius:50%; background:#d7e3e8; color:#18364b; display:flex; align-items:center; justify-content:center; font-weight:700; }
-  .footer { margin-top:38px; background:#16283a; color:#e7eef2; border-radius:26px; padding:34px 40px; }
-  .footer .big { font-size:31px; line-height:1.6; font-weight:700; color:white; }
-  .footer .small { margin-top:18px; font-size:17px; color:#afc1cb; line-height:1.6; }
-  .tag { display:inline-block; padding:7px 13px; border-radius:999px; background:#e5ecef; color:#264457; font-size:18px; margin:4px 5px 4px 0; font-weight:700; }
-  @media (max-width: 720px) {
-    .sheet { padding:24px 16px 36px; }
-    .hero { padding:34px 24px 30px; border-radius:22px; }
-    h1 { font-size:38px; }
-    .subtitle { font-size:20px; }
-    .hero-quote { font-size:22px; }
-    .section { padding:26px 22px; border-radius:20px; }
-    .section-title { font-size:26px; }
-    .two,.grid6 { grid-template-columns:1fr; }
-    .formula { font-size:19px; overflow-wrap:anywhere; }
-  }
-</style>
-</head>
-<body>
-<div class="sheet">
-  <section class="hero">
-    <div class="eyebrow">NOTION · 思维模型长图</div>
-    <h1>主体性、经验主义<br>与反馈机制</h1>
-    <div class="subtitle">从“太善良 / 免费 / 门槛”这类经验判断，往下拆到真正决定长期学习、组织治理与决策质量的底层变量。</div>
-    <div class="hero-quote">真正区分人的，不是拥有多少经验，而是能不能让新的经验推翻旧经验。</div>
-  </section>
-  <section class="section">
-    <div class="section-title"><span class="num">01</span>先把表层命题还原成底层问题</div>
-    <div class="two">
-      <div class="card warn"><h3>表层说法</h3><p>“太善良会吃亏”“免费的人不珍惜”“门槛越高越认真”“法不轻传，道不贱卖”。</p></div>
-      <div class="card good"><h3>更准确的底层命题</h3><p>当帮助替代了接受者本应承担的<span class="accent">选择、行动、成本与反馈</span>时，帮助才可能削弱主体性。</p></div>
-    </div>
-    <div class="formula">长期结果 = f（主体性，能力，认知，资源，制度，机会，反馈，运气，时间）</div>
-    <p class="micro">因此，“收费”“善良”“门槛”都不是万能主因，它们最多是某些更深变量的代理机制。</p>
-  </section>
-  <section class="section">
-    <div class="section-title"><span class="num">02</span>六变量框架：真正该看的是什么</div>
-    <div class="grid6">
-      <div class="v"><b>主体性</b><span>这是我自己的判断和行动吗？最终判断权是否被外包？</span></div>
-      <div class="v"><b>动机</b><span>我真的想做，还是因为别人推着我做？低门槛不等于高意愿。</span></div>
-      <div class="v"><b>能力</b><span>当前能力是否匹配任务？不要把能力缺口简单解释成“缺机会”。</span></div>
-      <div class="v"><b>责任</b><span>谁选择，谁承担什么结果？警惕“成功内归因，失败外归因”。</span></div>
-      <div class="v"><b>反馈</b><span>现实有没有资格否定我？看数据、分布与反例，而不只是故事。</span></div>
-      <div class="v"><b>制度</b><span>如何让权责、边界、激励与风险在不靠个人好恶时仍能稳定运行？</span></div>
-    </div>
-  </section>
-  <section class="section">
-    <div class="section-title"><span class="num">03</span>主体性不是“凡事靠自己”，而是一条闭环</div>
-    <div class="flow"><div class="step">问题</div><div class="arrow">→</div><div class="step">自主判断</div><div class="arrow">→</div><div class="step">行动</div><div class="arrow">→</div><div class="step">承担后果</div><div class="arrow">→</div><div class="step">获得反馈</div><div class="arrow">→</div><div class="step">反思</div><div class="arrow">→</div><div class="step">更新模型</div></div>
-    <div class="formula">主体性 = 判断 → 行动 → 承担 → 反馈 → 更新</div>
-    <p class="lead">内驱力回答“为什么愿意行动”；自主性回答“是不是我认可的选择”；<span class="accent">主体性</span>回答“我能不能形成完整的自我修正闭环”。</p>
-  </section>
-  <section class="section">
-    <div class="section-title"><span class="num">04</span>“法不轻传，道不贱卖……”为什么有道理，又为什么经不起绝对化</div>
-    <div class="sayings">法不轻传 · 道不贱卖 · 师不顺路 · 医不叩门</div>
-    <div class="two" style="margin-top:20px">
-      <div class="card good"><h3>它抓住了真实机制</h3><ul><li>需求要由对方显现，而不是强塞。</li><li>投入可以承担筛选和承诺功能。</li><li>帮助者不能替代接受者承担全部责任。</li><li>“自助者天助之”强调主动加工与主体性。</li></ul></div>
-      <div class="card warn"><h3>它的问题是过度压缩</h3><ul><li>把高维系统压成单变量因果。</li><li>把“付费/门槛”误当成效果本身。</li><li>忽略反例、边界条件和环境差异。</li><li>容易从启发式滑向僵化规则。</li></ul></div>
-    </div>
-    <div class="quote-box" style="margin-top:20px">格言最适合当“假设生成器”，而不是“结论生成器”。</div>
-  </section>
-  <section class="section">
-    <div class="section-title"><span class="num">05</span>经验为什么会从“智慧”变成“思维固化”</div>
-    <div class="split-title">坏的经验主义</div>
-    <div class="flow badflow"><div class="step">一次经验</div><div class="arrow">→</div><div class="step">形成格言</div><div class="arrow">→</div><div class="step">只找支持证据</div><div class="arrow">→</div><div class="step">忽略反例</div><div class="arrow">→</div><div class="step">旧模型强化</div></div>
-    <div class="split-title">好的经验学习</div>
-    <div class="flow"><div class="step">经验</div><div class="arrow">→</div><div class="step">提出假设</div><div class="arrow">→</div><div class="step">测试</div><div class="arrow">→</div><div class="step">反馈</div><div class="arrow">→</div><div class="step">更新</div></div>
-    <p class="lead" style="margin-top:22px">真正的问题不是“使用经验”，而是<span class="accent">经验只能强化旧模型，却不能修改旧模型</span>。</p>
-  </section>
-  <section class="section">
-    <div class="section-title"><span class="num">06</span>“社会底层 / 文化程度 / 思维固化”要怎么修正</div>
-    <p class="lead">不能把低主体性简单等同于低学历、低收入或某一社会阶层。更稳妥的解释是：长期的<span class="accent">资源稀缺、低信任、高不确定性与低容错</span>，会提高人对短期启发式、熟人经验和眼前收益的依赖。</p>
-    <table class="compare" style="margin-top:22px">
-      <tr><th>容易犯的归因</th><th>更完整的系统解释</th></tr>
-      <tr><td>“这些人就是不爱思考”</td><td>认知带宽长期被生存问题占用，短期规则可能是环境适应。</td></tr>
-      <tr><td>“学历低所以经验主义”</td><td>高学历者也会固化，只是可能固化在理论、权威、模型或指标上。</td></tr>
-      <tr><td>“底层就是社会达尔文”</td><td>更可能是资源稀缺 + 低信任 + 高竞争塑造出的策略，而非固定人格。</td></tr>
-      <tr><td>“只要有内驱力就能成功”</td><td>主体性重要，但仍受资源、制度、能力、机会与运气约束。</td></tr>
-    </table>
-    <div class="formula">更可靠的区分变量：元认知能力 + 反馈敏感度 + 模型更新能力</div>
-  </section>
-  <section class="section">
-    <div class="section-title"><span class="num">07</span>原视频为什么“对一部分人很适用”</div>
-    <div class="two">
-      <div class="card good"><h3>成立的部分</h3><ul><li>成本可以承担筛选与承诺功能。</li><li>组织不能靠老板个人善意运行。</li><li>帮助不能替代选择和结果承担。</li><li>规则能在自我调节不足时提供外部约束。</li></ul></div>
-      <div class="card warn"><h3>逻辑漏洞</h3><ul><li>“善良 → 赚不到钱”是多变量问题的过度压缩。</li><li>付费可能只是动机/筛选的代理变量。</li><li>存在选择偏差、幸存者偏差和沉没成本反作用。</li><li>员工案例更像治理失灵，而非“善良”本身。</li></ul></div>
-    </div>
-    <div class="formula">私人关系治理 → 权责模糊 → 评价标准模糊 → 预期错位 → 冲突</div>
-  </section>
-  <section class="section">
-    <div class="section-title"><span class="num">08</span>为什么规则对“低主体性状态”尤其有效</div>
-    <p class="lead">当一个人内部自我调节、责任归因与反馈更新能力较弱时，外部规则会承担一部分“替代性调节”功能。</p>
-    <div class="formula">自我调节能力越弱 → 越需要清晰的外部规则</div>
-    <div class="formula">主体性越强 → 越可以减少过程控制，但仍需保留边界与风险约束</div>
-    <p class="micro">高主体性不等于“不需要制度”。制度仍然负责处理信息不对称、利益冲突、公平性和尾部风险。</p>
-  </section>
-  <section class="section">
-    <div class="section-title"><span class="num">09</span>“成熟的帮助”应该长什么样</div>
-    <div class="formula">成熟帮助 = 善意 + 边界 + 责任 + 信息透明 + 可退出机制 + 真实反馈</div>
-    <div class="two" style="margin-top:18px">
-      <div class="card good"><h3>应该做</h3><p>给资源、给方法、降低无意义摩擦、创造试错空间、要求复盘、保留选择权。</p></div>
-      <div class="card warn"><h3>不要做</h3><p>替对方决定、替对方执行、替对方承担全部代价，并在失败后用“我为你好”解释一切。</p></div>
-    </div>
-    <p class="lead" style="margin-top:20px"><span class="accent">免费并不等于零成本。</span>可以用作业、申请筛选、时间投入、阶段目标、公开承诺、复盘报告和退出规则设计承诺机制。</p>
-  </section>
-  <section class="section">
-    <div class="section-title"><span class="num">10</span>四个实践场景</div>
-    <table class="compare">
-      <tr><th>场景</th><th>更好的做法</th></tr>
-      <tr><td>教育 / 亲子</td><td>提供安全边界 + 资源；要求孩子自己行动；允许可承受失败；共同复盘，而不是替他完成成长过程。</td></tr>
-      <tr><td>公司管理</td><td>不要把“善良”写进流程，把目标、周期、考核、边界、公平和退出机制写进流程。</td></tr>
-      <tr><td>投资 / 交易</td><td>把“我上次就是这么赚的”改写成待检验假设；检查样本量、胜率、赔率、回撤、尾部损失与幸存者偏差。</td></tr>
-      <tr><td>人际帮助</td><td>先确认需求、对方愿意投入什么、责任边界在哪里、结果不好时如何解释与承担。</td></tr>
-    </table>
-  </section>
-  <section class="section">
-    <div class="section-title"><span class="num">11</span>30 秒拆解一句“很有道理的话”</div>
-    <div class="checklist">
-      <div class="check">它真正说的是哪个变量？</div><div class="check">还有哪些变量被删掉了？</div><div class="check">这是个案、统计规律，还是因果规律？</div><div class="check">有没有明显反例？</div><div class="check">它在哪些条件成立，哪些条件不成立？</div><div class="check">有没有把代理变量当成真正变量？</div><div class="check">什么证据出现时，我愿意承认自己错？</div><div class="check">这条规则是在保护主体性，还是替别人做决定？</div>
-    </div>
-  </section>
-  <section class="footer">
-    <div class="big">经验可以指导行动，但不能免于被现实审判。<br>主体性不是拒绝帮助，而是不把最终判断、行动与责任永久外包。</div>
-    <div style="margin-top:22px"><span class="tag">主体性</span><span class="tag">内驱力</span><span class="tag">元认知</span><span class="tag">责任</span><span class="tag">反馈</span><span class="tag">制度</span><span class="tag">经验更新</span></div>
-    <div class="small">内容依据：Notion《主体性、经验主义与反馈机制｜中西哲学与实践模型》及 01｜核心框架与索引、02｜思维导图与思维模型、04｜原视频观点与批判性分析、05｜实践应用与复习卡。整理日期：2026-10-05。</div>
-  </section>
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>主体性、经验主义与反馈机制</title><link rel="stylesheet" href="style.css"></head><body><div class="mobileTop"><button data-menu>☰</button><b>Notion 知识库镜像</b></div><div class="layout"><aside class="sidebar"><div class="brand">🧭 主体性 · 经验主义 · 反馈机制</div><nav class="nav">
+<a class="active" href="index.html">首页｜一页总览</a>
+<a class="" href="01.html">🎯 01｜核心框架与索引</a>
+<a class="" href="02.html">🗺️ 02｜思维导图与思维模型</a>
+<a class="" href="03.html">📚 03｜中西典故、哲学与心理学对照</a>
+<a class="" href="04.html">🔍 04｜原视频观点与批判性分析</a>
+<a class="" href="05.html">🧠 05｜实践应用与复习卡</a>
+</nav></aside><main class="main"><article class="page">
+<div class="crumb">Notion 知识库 / 首页</div><div class="icon">🧭</div>
+<h1 class="title">主体性、经验主义与反馈机制</h1>
+<p class="lead">中西哲学与实践模型</p>
+<div class="callout"><b>核心命题：</b>真正需要研究的不是“善良是否让人赚不到钱”，而是 <b>主体性、内驱力、责任归因、反馈机制、制度边界与经验更新</b> 之间的关系。</div>
+<h2>一页总览</h2>
+<ul>
+<li><b>原始短视频观点</b>：善意如果绕过成本筛选、组织规则和责任机制，可能产生反效果。</li>
+<li><b>我们的修正</b>：问题不在“善良”本身，而在于 <b>无边界帮助 + 权责模糊 + 反馈失真</b>。</li>
+<li><b>更底层变量</b>：主体性、自主性、内驱力、元认知、责任承担、反馈更新能力。</li>
+<li><b>经验格言定位</b>：格言擅长压缩长期经验，但会丢失变量、边界条件、概率和反例；最适合作为 <b>假设生成器</b>。</li>
+<li><b>制度含义</b>：内在自我调节不足时，需要更多外部约束；主体性强时，可以减少过程控制，但不能取消必要的风险边界。</li>
+<li><b>系统观点</b>：不要用主观善意切断负反馈回路。帮助可以降低不必要的摩擦，但不能替接受者取消选择、行动、代价与结果。</li>
+</ul>
+<h2>核心公式</h2>
+<div class="formula">长期结果 = f(主体性, 能力, 认知, 资源, 制度, 机会, 反馈, 运气, 时间)</div>
+<div class="formula">成熟帮助 = 善意 + 边界 + 责任 + 真实反馈</div>
+<div class="formula">学习闭环 = 行动 → 反馈 → 反思 → 模型更新 → 再行动</div>
+<div class="formula">经验固化 = 个案 → 格言 → 确认偏误 → 拒绝反例 → 旧模型强化</div>
+<h2>知识库目录</h2>
+<div class="toc">
+<a href="01.html"><b>🎯 01｜核心框架与索引</b><br><span class="muted">六变量框架、经验主义的边界、最终判断标准</span></a>
+<a href="02.html"><b>🗺️ 02｜思维导图与思维模型</b><br><span class="muted">主体性闭环、经验固化、帮助四象限、投资分布思维</span></a>
+<a href="03.html"><b>📚 03｜中西典故、哲学与心理学对照</b><br><span class="muted">孔子、庄子、休谟、波普尔、康德、控制点、自我决定理论</span></a>
+<a href="04.html"><b>🔍 04｜原视频观点与批判性分析</b><br><span class="muted">成立部分、逻辑漏洞、替代模型、可检验命题</span></a>
+<a href="05.html"><b>🧠 05｜实践应用与复习卡</b><br><span class="muted">教育、管理、投资、人际帮助、自我成长</span></a>
 </div>
-<footer style="max-width:1080px;margin:0 auto;padding:0 24px 36px;color:#66717b;font-size:14px;text-align:center">内容整理自 Notion 知识库｜主体性、经验主义与反馈机制</footer>
-</body>
-</html>
+<h2>来源与可信度说明</h2>
+<ul>
+<li>原始材料：《你赚不到钱，可能是因为你太善良》视频文案提取稿，14:30，语音识别整理版。</li>
+<li>中国典籍：Notion 页面注明优先采用《中国哲学书电子化计划》中的《论语》《庄子》等原文；现代模型映射属于二次分析。</li>
+<li>西方哲学：Notion 页面以 Stanford Encyclopedia of Philosophy 等资料核验。</li>
+<li>现代心理学：主体性相关部分参考 locus of control 与 self-determination theory；不把任何人永久分类成“内控/外控”或“高/低主体性”。</li>
+<li>“法不轻传，道不贱卖，师不顺路，医不叩门”统一古典出处不可靠，应按民间经验格言处理。</li>
+</ul>
+<div class="quote">真正区分人的，不是拥有多少经验，而是能不能让新的经验推翻旧经验。</div>
+<div class="footer-nav"><span></span><a href="01.html">下一页：01 核心框架 →</a></div></article></main></div><script src="app.js"></script></body></html>
