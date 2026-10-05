@@ -1,0 +1,1 @@
+document.addEventListener('DOMContentLoaded',()=>{const b=document.querySelector('[data-menu]'),s=document.querySelector('.sidebar');if(b&&s)b.onclick=()=>s.classList.toggle('open');document.querySelectorAll('.sidebar a').forEach(a=>a.onclick=()=>s&&s.classList.remove('open'));});
