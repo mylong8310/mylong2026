@@ -20,6 +20,23 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Validate local assets
+        shell: bash
+        run: |
+          node --check fitbalance-android/app/src/main/assets/app.js
+          node --check fitbalance-android/app/src/main/assets/api-gateway.js
+          python - <<'PY'
+          import json
+          for p in [
+              'fitbalance-android/app/src/main/assets/zhuangzi_seed.json',
+              'fitbalance-android/app/src/main/assets/health_rules_seed.json',
+              'fitbalance-android/app/src/main/assets/api-config.json',
+          ]:
+              with open(p, 'r', encoding='utf-8') as f:
+                  json.load(f)
+              print('OK', p)
+          PY
+
       - name: Set up Java 17
         uses: actions/setup-java@v4
         with:
@@ -48,13 +65,13 @@ jobs:
           gradle -p fitbalance-android :app:assembleDebug --no-daemon --stacktrace
 
       - name: Rename APK
-        run: cp fitbalance-android/app/build/outputs/apk/debug/app-debug.apk FitBalance-Standalone-v1.3.0.apk
+        run: cp fitbalance-android/app/build/outputs/apk/debug/app-debug.apk FitBalance-Standalone-v1.4.0.apk
 
       - name: Upload workflow artifact
         uses: actions/upload-artifact@v4
         with:
           name: FitBalance-Standalone-APK
-          path: FitBalance-Standalone-v1.3.0.apk
+          path: FitBalance-Standalone-v1.4.0.apk
           if-no-files-found: error
           retention-days: 30
 
@@ -63,12 +80,12 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          if gh release view fitbalance-v1.3.0 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release upload fitbalance-v1.3.0 FitBalance-Standalone-v1.3.0.apk --repo "$GITHUB_REPOSITORY" --clobber
+          if gh release view fitbalance-v1.4.0 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload fitbalance-v1.4.0 FitBalance-Standalone-v1.4.0.apk --repo "$GITHUB_REPOSITORY" --clobber
           else
-            gh release create fitbalance-v1.3.0 FitBalance-Standalone-v1.3.0.apk \
+            gh release create fitbalance-v1.4.0 FitBalance-Standalone-v1.4.0.apk \
               --repo "$GITHUB_REPOSITORY" \
               --target "$GITHUB_SHA" \
-              --title "动衡 FitBalance v1.3.0 独立离线版" \
-              --notes "v1.3.0：继续保持核心功能本地独立运行；新增 Android SQLite 本地知识库、30 日庄子养心模块、每日内容与完成进度；API Gateway 仅预留并默认关闭，无网络权限也可运行核心功能。"
+              --title "动衡 FitBalance v1.4.0 本地规则与报告版" \
+              --notes "v1.4.0：新增疾病×食物红黄绿本地规则引擎及证据ID；自定义运动/冥想；训练就绪度恢复曲线；离线交互式人体肌群图；本地周报/月报。核心功能不依赖API。"
           fi
