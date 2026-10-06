@@ -260,8 +260,15 @@ public class MainActivity extends Activity implements SensorEventListener {
         }
 
         @JavascriptInterface
+        public String evaluateFoodRiskJson(String foodId, String profileJson) {
+            return database != null
+                    ? database.evaluateFoodRiskJson(foodId, profileJson)
+                    : "{\"status\":\"neutral\",\"items\":[]}";
+        }
+
+        @JavascriptInterface
         public String appVersion() {
-            return "1.3.0";
+            return "1.4.0";
         }
     }
 
