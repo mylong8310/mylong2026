@@ -48,13 +48,13 @@ jobs:
           gradle -p fitbalance-android :app:assembleDebug --no-daemon --stacktrace
 
       - name: Rename APK
-        run: cp fitbalance-android/app/build/outputs/apk/debug/app-debug.apk FitBalance-Standalone-v1.1.0.apk
+        run: cp fitbalance-android/app/build/outputs/apk/debug/app-debug.apk FitBalance-Standalone-v1.2.0.apk
 
       - name: Upload workflow artifact
         uses: actions/upload-artifact@v4
         with:
           name: FitBalance-Standalone-APK
-          path: FitBalance-Standalone-v1.1.0.apk
+          path: FitBalance-Standalone-v1.2.0.apk
           if-no-files-found: error
           retention-days: 30
 
@@ -63,12 +63,12 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          if gh release view fitbalance-v1.1.0 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release upload fitbalance-v1.1.0 FitBalance-Standalone-v1.1.0.apk --repo "$GITHUB_REPOSITORY" --clobber
+          if gh release view fitbalance-v1.2.0 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload fitbalance-v1.2.0 FitBalance-Standalone-v1.2.0.apk --repo "$GITHUB_REPOSITORY" --clobber
           else
-            gh release create fitbalance-v1.1.0 FitBalance-Standalone-v1.1.0.apk \
+            gh release create fitbalance-v1.2.0 FitBalance-Standalone-v1.2.0.apk \
               --repo "$GITHUB_REPOSITORY" \
               --target "$GITHUB_SHA" \
-              --title "动衡 FitBalance v1.1.0 独立安装版" \
-              --notes "v1.1.0：固定 App UI 缩放；新增吸烟支数、啤酒/白酒体积与酒精度、纯酒精克数换算、熬夜时长、每日负 Buff 与 7 日趋势；共享前端增加 Android/iOS 原生桥兼容，Android 继续优先分发。"
+              --title "动衡 FitBalance v1.2.0 独立安装版" \
+              --notes "v1.2.0：新增高血压、冠心病/心脏病、既往心肌梗死、既往脑卒中/TIA 健康模式；首次可跳过健康问卷；本地保存两位紧急联系人；首页显示心脑血管紧急卡；支持一键进入系统呼叫流程拨打 120 或个人紧急联系人；Android/iOS 共用桥接协议。"
           fi
