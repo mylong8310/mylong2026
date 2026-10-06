@@ -88,6 +88,17 @@
   </div>
 
   <div class="section">
+    <div class="section-title"><h2>今日庄子</h2><span id="zhuangziHomeProgress">30 日离线养心</span></div>
+    <div class="card zhuangzi-home" id="zhuangziHomeCard">
+      <div class="zhuangzi-badge" id="zhuangziHomeDay">第 1 天</div>
+      <div class="zhuangzi-home-title" id="zhuangziHomeTitle">正在读取本地内容…</div>
+      <div class="zhuangzi-home-quote" id="zhuangziHomeQuote"></div>
+      <div class="note" id="zhuangziHomeAction"></div>
+      <button class="btn secondary" id="openZhuangziBtn" type="button" style="width:100%;margin-top:12px">进入 30 日养心模块</button>
+    </div>
+  </div>
+
+  <div class="section">
     <div class="section-title"><h2>身体趋势</h2><span id="bmiLabel">BMI --</span></div>
     <div class="card">
       <div class="grid3">
@@ -189,6 +200,49 @@
     <div class="section-title"><h2>肌肉恢复</h2><span>训练后恢复状态</span></div>
     <div class="alert">恢复提示依据“距离上次训练时间 + 主观酸痛程度”做粗略分级，不代表组织已经完全恢复。高强度训练、疼痛、肿胀或功能受限时要更谨慎。</div>
     <div class="muscle-grid" id="muscleGrid" style="margin-top:10px"></div>
+  </div>
+
+  <div class="section" id="zhuangziSection">
+    <div class="section-title"><h2>庄子 · 30 日养心</h2><span>SQLite 本地内容 · 无需联网</span></div>
+    <div class="card zhuangzi-card">
+      <div class="between">
+        <div>
+          <div class="zhuangzi-badge" id="zhuangziDayBadge">第 1 / 30 天</div>
+          <h3 id="zhuangziTitle">正在读取本地内容…</h3>
+          <div class="note" id="zhuangziChapter"></div>
+        </div>
+        <div class="zhuangzi-ring"><strong id="zhuangziCheckedCount">0</strong><small>/30 已完成</small></div>
+      </div>
+
+      <div class="zhuangzi-progress"><i id="zhuangziProgressBar"></i></div>
+
+      <blockquote id="zhuangziQuote"></blockquote>
+
+      <div class="zhuangzi-panel">
+        <b>故事</b>
+        <p id="zhuangziStory"></p>
+      </div>
+      <div class="zhuangzi-panel">
+        <b>今天怎么理解</b>
+        <p id="zhuangziInterpretation"></p>
+      </div>
+      <div class="zhuangzi-action">
+        <span>今日一事</span>
+        <strong id="zhuangziAction"></strong>
+      </div>
+
+      <div class="dish-components" id="zhuangziTags"></div>
+
+      <div class="zhuangzi-controls">
+        <button class="btn ghost" id="zhuangziPrevBtn" type="button">← 前一天</button>
+        <button class="btn" id="zhuangziCheckBtn" type="button">✓ 今日完成</button>
+        <button class="btn ghost" id="zhuangziNextBtn" type="button">后一天 →</button>
+      </div>
+
+      <div class="note" id="zhuangziCycleNote" style="margin-top:11px">
+        本模块用于日常反思、情绪调节与生活节奏提示，不替代心理或医学治疗。
+      </div>
+    </div>
   </div>
 </section>
 
@@ -306,7 +360,7 @@
   <div class="nav-btn on" data-page="home"><span class="ico">◉</span>首页</div>
   <div class="nav-btn" data-page="nutrition"><span class="ico">🥗</span>饮食</div>
   <div class="nav-btn" data-page="activity"><span class="ico">🏃</span>运动</div>
-  <div class="nav-btn" data-page="recovery"><span class="ico">💪</span>恢复</div>
+  <div class="nav-btn" data-page="recovery"><span class="ico">☯️</span>身心</div>
   <div class="nav-btn" data-page="profile"><span class="ico">⚙️</span>我的</div>
 </div></nav>
 
@@ -334,6 +388,7 @@
   </div>
 </div>
 <div class="toast" id="toast"></div>
+<script src="api-gateway.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
