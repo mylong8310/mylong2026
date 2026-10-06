@@ -229,20 +229,44 @@
     }, {kcal:0,p:0,c:0,f:0});
   }
 
+  let iosStepCache = null;
+
+  window.FitNative = window.FitNative || {};
+  window.FitNative.receiveSteps = function(value) {
+    const n = Number(value);
+    if (Number.isFinite(n) && n >= 0) {
+      iosStepCache = n;
+      try { renderSteps(); renderHome(); } catch (e) {}
+    }
+  };
+
+  function postIosNative(action, payload) {
+    try {
+      const handler = window.webkit &&
+        window.webkit.messageHandlers &&
+        window.webkit.messageHandlers.fitbridge;
+      if (handler && typeof handler.postMessage === 'function') {
+        handler.postMessage({action, payload: payload || {}});
+        return true;
+      }
+    } catch (e) {}
+    return false;
+  }
+
   function readSteps() {
-    let manual = Number(state.manualSteps[today()] || 0);
+    const manual = Number(state.manualSteps[today()] || 0);
     try {
       if (window.FitBridge && typeof FitBridge.getTodaySteps === 'function') {
         const n = Number(FitBridge.getTodaySteps());
         if (n >= 0) {
-          el('stepSource').textContent = '手机步数传感器';
+          el('stepSource').textContent = 'Android 步数传感器';
           return n;
         }
-        if (n === -2) {
-          el('stepSource').textContent = '需要活动识别权限';
-        } else {
-          el('stepSource').textContent = '设备无步数传感器';
-        }
+        if (n === -2) el('stepSource').textContent = '需要活动识别权限';
+        else el('stepSource').textContent = '设备无步数传感器';
+      } else if (postIosNative('getTodaySteps')) {
+        el('stepSource').textContent = iosStepCache == null ? 'iOS 步数读取中' : 'iOS Core Motion';
+        if (iosStepCache != null) return iosStepCache;
       } else {
         el('stepSource').textContent = '手动步数';
       }
@@ -693,7 +717,11 @@
       state.manualSteps[today()] = n;
       save();
       try {
-        if (window.FitBridge && typeof FitBridge.requestStepPermission === 'function') FitBridge.requestStepPermission();
+        if (window.FitBridge && typeof FitBridge.requestStepPermission === 'function') {
+          FitBridge.requestStepPermission();
+        } else {
+          postIosNative('requestActivityPermission');
+        }
       } catch (e) {}
       renderAll();
       toast('步数已刷新');
