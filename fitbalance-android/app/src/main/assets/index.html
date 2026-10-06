@@ -55,6 +55,22 @@
     <div id="conditionAlerts"></div>
   </div>
 
+  <div class="section" id="emergencySection">
+    <div class="section-title"><h2>紧急联系</h2><span>心脑血管高风险快捷入口</span></div>
+    <div class="card emergency-card">
+      <div class="emergency-top">
+        <div><div class="emergency-kicker">ICE · In Case of Emergency</div><h3>胸痛、呼吸困难或疑似卒中时优先呼叫急救</h3></div>
+        <button class="sos-btn" id="call120Btn" type="button">☎ 120</button>
+      </div>
+      <div class="emergency-grid" id="emergencyContactButtons"></div>
+      <div class="emergency-signs">
+        <div><b>心梗/急性冠脉综合征常见警讯</b><span>胸部压迫/疼痛、气短、恶心或头晕、下颌/颈/背痛、手臂或肩部不适等。</span></div>
+        <div><b>卒中 B.E.F.A.S.T.</b><span>平衡异常、视力变化、面歪、手臂无力、言语异常 → 立即求助并记录症状开始时间。</span></div>
+      </div>
+      <div class="note">中国大陆院前医疗急救号码为 120。第三方 App 会交给系统电话界面处理，系统可能要求一次确认。</div>
+    </div>
+  </div>
+
   <div class="section">
     <div class="section-title"><h2>今日负 Buff</h2><span>行为负荷 · 非临床风险评分</span></div>
     <div class="card">
@@ -215,8 +231,40 @@
   <div class="section">
     <div class="section-title"><h2>健康模式</h2><span>可同时选择</span></div>
     <div class="card">
-      <div class="switch-row"><div><b>糖尿病模式</b><small>加强碳水分布、低血糖与禁食提醒</small></div><div class="switch" id="diabetesSwitch"><i></i></div></div>
-      <div class="switch-row"><div><b>痛风模式</b><small>加强高嘌呤、酒精、高果糖与脱水提醒</small></div><div class="switch" id="goutSwitch"><i></i></div></div>
+      <div class="switch-row"><div><b>糖尿病</b><small>加强碳水分布、低血糖与禁食提醒</small></div><div class="switch" id="diabetesSwitch"><i></i></div></div>
+      <div class="switch-row"><div><b>痛风 / 高尿酸</b><small>加强高嘌呤、酒精、高果糖、脱水与快速减重提醒</small></div><div class="switch" id="goutSwitch"><i></i></div></div>
+      <div class="switch-row"><div><b>高血压</b><small>运动与钠摄入提示采用更保守策略</small></div><div class="switch" id="hypertensionSwitch"><i></i></div></div>
+      <div class="switch-row"><div><b>冠心病 / 其他心脏病</b><small>显示紧急联系人与胸痛急救入口</small></div><div class="switch" id="heartDiseaseSwitch"><i></i></div></div>
+      <div class="switch-row"><div><b>既往心肌梗死</b><small>显示紧急联系人，运动强度需遵循康复计划</small></div><div class="switch" id="priorMISwitch"><i></i></div></div>
+      <div class="switch-row"><div><b>既往脑卒中 / TIA</b><small>显示 B.E.F.A.S.T. 卒中识别与紧急入口</small></div><div class="switch" id="priorStrokeSwitch"><i></i></div></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><h2>紧急联系人</h2><span>仅存本机 · 可随时修改</span></div>
+    <div class="card">
+      <div class="alert red">如果出现新的持续胸痛、明显呼吸困难、意识异常，或 B.E.F.A.S.T. 任一卒中警讯，不要只联系家人，应优先呼叫 120。</div>
+      <div class="contact-editor">
+        <div class="contact-label">主要联系人</div>
+        <div class="field-grid">
+          <div class="field"><label>姓名</label><input id="ice1Name" placeholder="例如：家属"></div>
+          <div class="field"><label>关系</label><input id="ice1Relation" placeholder="例如：配偶"></div>
+        </div>
+        <div class="field"><label>手机号码</label><input id="ice1Phone" inputmode="tel" placeholder="请输入电话号码"></div>
+      </div>
+      <div class="contact-editor">
+        <div class="contact-label">备用联系人</div>
+        <div class="field-grid">
+          <div class="field"><label>姓名</label><input id="ice2Name" placeholder="例如：朋友"></div>
+          <div class="field"><label>关系</label><input id="ice2Relation" placeholder="例如：朋友"></div>
+        </div>
+        <div class="field"><label>手机号码</label><input id="ice2Phone" inputmode="tel" placeholder="请输入电话号码"></div>
+      </div>
+      <button class="btn" id="saveEmergencyContactsBtn" style="width:100%;margin-top:12px">保存紧急联系人</button>
+      <div class="emergency-actions" style="margin-top:12px">
+        <button class="btn danger" id="profileCall120Btn" type="button">☎ 中国大陆急救 120</button>
+        <button class="btn secondary" id="profileCallPrimaryBtn" type="button">☎ 呼叫主要联系人</button>
+      </div>
     </div>
   </div>
 
@@ -262,6 +310,29 @@
   <div class="nav-btn" data-page="profile"><span class="ico">⚙️</span>我的</div>
 </div></nav>
 
+<div class="onboarding" id="onboarding">
+  <div class="onboarding-sheet">
+    <div class="between"><div><div class="emergency-kicker">首次设置 · 可跳过</div><h2>用 30 秒建立你的健康基础资料</h2></div><button class="close-x" id="skipOnboardingBtn" type="button">跳过</button></div>
+    <p class="note">这些资料只保存在当前设备。以后可以在“我的”随时修改。</p>
+    <div class="field-grid">
+      <div class="field"><label>年龄</label><input id="onAge" type="number" min="14" max="100" value="40"></div>
+      <div class="field"><label>体重 kg</label><input id="onWeight" type="number" step="0.1" value="70"></div>
+    </div>
+    <div class="onboarding-conditions">
+      <label><input type="checkbox" id="onHypertension"> 高血压</label>
+      <label><input type="checkbox" id="onHeartDisease"> 冠心病/心脏病</label>
+      <label><input type="checkbox" id="onPriorMI"> 既往心梗</label>
+      <label><input type="checkbox" id="onPriorStroke"> 既往脑卒中/TIA</label>
+      <label><input type="checkbox" id="onDiabetes"> 糖尿病</label>
+      <label><input type="checkbox" id="onGout"> 痛风/高尿酸</label>
+    </div>
+    <div class="field-grid">
+      <div class="field"><label>紧急联系人姓名（可选）</label><input id="onIceName" placeholder="家属"></div>
+      <div class="field"><label>紧急联系人电话（可选）</label><input id="onIcePhone" inputmode="tel" placeholder="手机号"></div>
+    </div>
+    <button class="btn" id="saveOnboardingBtn" style="width:100%;margin-top:14px">保存并进入动衡</button>
+  </div>
+</div>
 <div class="toast" id="toast"></div>
 <script src="app.js"></script>
 </body>
