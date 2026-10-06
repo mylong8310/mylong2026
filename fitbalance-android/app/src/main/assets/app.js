@@ -86,6 +86,8 @@
   ];
   let selectedExercise = 'walk';
   let photoDish = [];
+  let zhuangziStatus = null;
+  let zhuangziViewDay = 1;
 
   const muscleDefs = [
     ['chest','胸'],['back','背'],['legs','腿'],['shoulders','肩'],['arms','手臂'],['core','核心']
@@ -401,6 +403,98 @@
       exerciseKcal: logs.reduce((a,x) => a + Number(x.kcal || 0), 0),
       total: nonStep + Math.max(sKcal, stepLike)
     };
+  }
+
+  function parseBridgeJson(value, fallback) {
+    try {
+      if (!value) return fallback;
+      return typeof value === 'string' ? JSON.parse(value) : value;
+    } catch (e) {
+      return fallback;
+    }
+  }
+
+  function loadZhuangziStatus() {
+    try {
+      if (window.FitBridge && typeof FitBridge.getZhuangziStatusJson === 'function') {
+        zhuangziStatus = parseBridgeJson(FitBridge.getZhuangziStatusJson(), null);
+        if (zhuangziStatus && !zhuangziViewDay) zhuangziViewDay = Number(zhuangziStatus.current_day || 1);
+        if (zhuangziStatus && zhuangziViewDay < 1) zhuangziViewDay = Number(zhuangziStatus.current_day || 1);
+        return zhuangziStatus;
+      }
+    } catch (e) {}
+    return null;
+  }
+
+  function getZhuangziDay(day) {
+    try {
+      if (window.FitBridge && typeof FitBridge.getZhuangziDayJson === 'function') {
+        return parseBridgeJson(FitBridge.getZhuangziDayJson(Number(day)), null);
+      }
+    } catch (e) {}
+    return null;
+  }
+
+  function renderZhuangzi() {
+    const status = loadZhuangziStatus();
+    if (!status) {
+      if (el('zhuangziHomeTitle')) el('zhuangziHomeTitle').textContent = '本地庄子数据库暂不可用';
+      if (el('zhuangziTitle')) el('zhuangziTitle').textContent = '本地庄子数据库暂不可用';
+      return;
+    }
+
+    if (!zhuangziViewDay || zhuangziViewDay < 1 || zhuangziViewDay > Number(status.total_days || 30)) {
+      zhuangziViewDay = Number(status.current_day || 1);
+    }
+    const current = getZhuangziDay(zhuangziViewDay) || status.current || {};
+    const todayContent = status.current || current;
+    const total = Number(status.total_days || 30);
+    const checked = Number(status.checked_count || 0);
+
+    if (el('zhuangziHomeDay')) el('zhuangziHomeDay').textContent = '第 ' + Number(status.current_day || 1) + ' 天';
+    if (el('zhuangziHomeTitle')) el('zhuangziHomeTitle').textContent = todayContent.title || '今日庄子';
+    if (el('zhuangziHomeQuote')) el('zhuangziHomeQuote').textContent = todayContent.original_text || '';
+    if (el('zhuangziHomeAction')) el('zhuangziHomeAction').textContent = todayContent.action ? ('今日一事：' + todayContent.action) : '';
+    if (el('zhuangziHomeProgress')) el('zhuangziHomeProgress').textContent = checked + ' / ' + total + ' 已完成';
+
+    if (el('zhuangziDayBadge')) el('zhuangziDayBadge').textContent = '第 ' + Number(current.day_no || zhuangziViewDay) + ' / ' + total + ' 天';
+    if (el('zhuangziTitle')) el('zhuangziTitle').textContent = current.title || '';
+    if (el('zhuangziChapter')) el('zhuangziChapter').textContent = current.chapter ? ('《庄子·' + current.chapter + '》') : '';
+    if (el('zhuangziCheckedCount')) el('zhuangziCheckedCount').textContent = checked;
+    if (el('zhuangziProgressBar')) el('zhuangziProgressBar').style.width = clamp(checked / total * 100, 0, 100) + '%';
+    if (el('zhuangziQuote')) el('zhuangziQuote').textContent = current.original_text || '';
+    if (el('zhuangziStory')) el('zhuangziStory').textContent = current.story || '';
+    if (el('zhuangziInterpretation')) el('zhuangziInterpretation').textContent = current.interpretation || '';
+    if (el('zhuangziAction')) el('zhuangziAction').textContent = current.action || '';
+
+    if (el('zhuangziTags')) {
+      const tags = []
+        .concat(Array.isArray(current.mood_tags) ? current.mood_tags : [])
+        .concat(Array.isArray(current.health_tags) ? current.health_tags : []);
+      el('zhuangziTags').innerHTML = tags.map(x => '<span class="dish-chip">' + x + '</span>').join('');
+    }
+
+    if (el('zhuangziPrevBtn')) el('zhuangziPrevBtn').disabled = zhuangziViewDay <= 1;
+    if (el('zhuangziNextBtn')) el('zhuangziNextBtn').disabled = zhuangziViewDay >= total;
+    if (el('zhuangziCheckBtn')) {
+      el('zhuangziCheckBtn').classList.toggle('checked', !!current.checked);
+      el('zhuangziCheckBtn').textContent = current.checked ? '✓ 已完成' : '✓ 标记完成';
+    }
+
+    if (el('zhuangziCycleNote')) {
+      el('zhuangziCycleNote').textContent = status.cycle_complete
+        ? '首轮 30 天已完成。现在可以自由翻阅复习；后续接入 API 时会通过内容版本同步扩展，不影响本地内容。'
+        : '第 ' + Number(status.current_day || 1) + ' 天 · 从 ' + (status.start_date || '首次使用日') + ' 开始。本模块完全离线运行。';
+    }
+  }
+
+  function openZhuangziModule() {
+    const nav = document.querySelector('.nav-btn[data-page="recovery"]');
+    if (nav) nav.click();
+    setTimeout(() => {
+      const s = el('zhuangziSection');
+      if (s && s.scrollIntoView) s.scrollIntoView({behavior:'smooth',block:'start'});
+    }, 50);
   }
 
   function renderDate() {
@@ -799,6 +893,7 @@
     renderProfile();
     renderEmergency();
     renderBehavior();
+    renderZhuangzi();
   }
 
   function bind() {
@@ -970,6 +1065,33 @@
     el('skipOnboardingBtn').onclick = () => completeOnboarding(true);
     el('saveOnboardingBtn').onclick = () => completeOnboarding(false);
 
+    el('openZhuangziBtn').onclick = openZhuangziModule;
+    el('zhuangziPrevBtn').onclick = () => {
+      zhuangziViewDay = Math.max(1, zhuangziViewDay - 1);
+      renderZhuangzi();
+    };
+    el('zhuangziNextBtn').onclick = () => {
+      const max = Number((zhuangziStatus && zhuangziStatus.total_days) || 30);
+      zhuangziViewDay = Math.min(max, zhuangziViewDay + 1);
+      renderZhuangzi();
+    };
+    el('zhuangziCheckBtn').onclick = () => {
+      const item = getZhuangziDay(zhuangziViewDay);
+      if (!item) return toast('本地庄子数据暂不可用');
+      try {
+        if (window.FitBridge && typeof FitBridge.setZhuangziCheckin === 'function') {
+          const ok = FitBridge.setZhuangziCheckin(zhuangziViewDay, !item.checked);
+          if (ok) {
+            zhuangziStatus = null;
+            renderZhuangzi();
+            toast(item.checked ? '已取消完成标记' : '今天的养心练习已完成');
+          }
+        }
+      } catch (e) {
+        toast('保存失败，请稍后重试');
+      }
+    };
+
     el('addWeightBtn').onclick = () => {
       const date = el('weightDate').value || today();
       const weight = Number(el('weightEntry').value);
@@ -987,6 +1109,8 @@
   handlePhotoInput();
   bind();
   renderDish();
+  const firstZhuangzi = loadZhuangziStatus();
+  if (firstZhuangzi) zhuangziViewDay = Number(firstZhuangzi.current_day || 1);
   renderAll();
   showOnboardingIfNeeded();
   setInterval(() => {
