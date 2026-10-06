@@ -48,13 +48,13 @@ jobs:
           gradle -p fitbalance-android :app:assembleDebug --no-daemon --stacktrace
 
       - name: Rename APK
-        run: cp fitbalance-android/app/build/outputs/apk/debug/app-debug.apk FitBalance-Standalone-v1.2.0.apk
+        run: cp fitbalance-android/app/build/outputs/apk/debug/app-debug.apk FitBalance-Standalone-v1.3.0.apk
 
       - name: Upload workflow artifact
         uses: actions/upload-artifact@v4
         with:
           name: FitBalance-Standalone-APK
-          path: FitBalance-Standalone-v1.2.0.apk
+          path: FitBalance-Standalone-v1.3.0.apk
           if-no-files-found: error
           retention-days: 30
 
@@ -63,12 +63,12 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          if gh release view fitbalance-v1.2.0 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release upload fitbalance-v1.2.0 FitBalance-Standalone-v1.2.0.apk --repo "$GITHUB_REPOSITORY" --clobber
+          if gh release view fitbalance-v1.3.0 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload fitbalance-v1.3.0 FitBalance-Standalone-v1.3.0.apk --repo "$GITHUB_REPOSITORY" --clobber
           else
-            gh release create fitbalance-v1.2.0 FitBalance-Standalone-v1.2.0.apk \
+            gh release create fitbalance-v1.3.0 FitBalance-Standalone-v1.3.0.apk \
               --repo "$GITHUB_REPOSITORY" \
               --target "$GITHUB_SHA" \
-              --title "动衡 FitBalance v1.2.0 独立安装版" \
-              --notes "v1.2.0：新增高血压、冠心病/心脏病、既往心肌梗死、既往脑卒中/TIA 健康模式；首次可跳过健康问卷；本地保存两位紧急联系人；首页显示心脑血管紧急卡；支持一键进入系统呼叫流程拨打 120 或个人紧急联系人；Android/iOS 共用桥接协议。"
+              --title "动衡 FitBalance v1.3.0 独立离线版" \
+              --notes "v1.3.0：继续保持核心功能本地独立运行；新增 Android SQLite 本地知识库、30 日庄子养心模块、每日内容与完成进度；API Gateway 仅预留并默认关闭，无网络权限也可运行核心功能。"
           fi
