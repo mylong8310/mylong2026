@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#f5efe3">
+<title>秋润</title>
+<style>
+:root{--bg:#f5efe3;--card:#fffaf1;--ink:#243a31;--muted:#7a7b70;--green:#355b4b;--green2:#6f8c77;--line:#e7ddcc;--gold:#a77839;--danger:#8d5547}
+*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Noto Sans SC","Microsoft YaHei",sans-serif}
+body{min-height:100vh}.app{max-width:720px;margin:0 auto;padding:env(safe-area-inset-top) 16px calc(92px + env(safe-area-inset-bottom))}
+header{padding:24px 4px 8px;display:flex;justify-content:space-between;align-items:flex-start}.brand{font-family:serif;font-size:32px;font-weight:800;letter-spacing:4px}.date{font-size:13px;color:var(--muted);text-align:right;line-height:1.6}
+.hero{background:linear-gradient(145deg,#3c6553,#28483c);color:#fff;border-radius:26px;padding:22px;box-shadow:0 10px 30px rgba(40,72,60,.14)}
+.hero-top{display:flex;justify-content:space-between;gap:16px}.score{font-size:46px;font-weight:800;line-height:1}.score small{font-size:14px;font-weight:500;opacity:.8}.pill{display:inline-block;background:rgba(255,255,255,.16);padding:7px 10px;border-radius:999px;font-size:12px}.hero h2{font-family:serif;margin:16px 0 8px;font-size:22px}.hero p{margin:0;opacity:.9;line-height:1.65;font-size:14px}
+.section{margin-top:22px}.section-title{font-family:serif;font-size:20px;font-weight:800;margin:0 0 12px;display:flex;justify-content:space-between;align-items:center}.section-title span{font-family:sans-serif;font-size:12px;font-weight:500;color:var(--muted)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:16px;box-shadow:0 5px 16px rgba(75,61,38,.04)}
+.ritual{display:flex;align-items:center;gap:12px;padding:12px 4px;border-bottom:1px solid var(--line)}.ritual:last-child{border:0}.check{width:25px;height:25px;border:2px solid var(--green2);border-radius:8px;display:grid;place-items:center;font-weight:bold;color:#fff;flex:0 0 auto}.check.done{background:var(--green)}.ritual b{font-size:15px}.ritual small{display:block;color:var(--muted);margin-top:4px}
+.water{display:grid;grid-template-columns:repeat(8,1fr);gap:7px}.cup{aspect-ratio:1;border:1px solid #cfc5b3;border-radius:10px;display:grid;place-items:center;font-size:16px;background:#fffaf1}.cup.on{background:#dce8df;border-color:#6f8c77}.progress{margin-top:10px;color:var(--muted);font-size:13px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.tile{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:15px;min-height:128px;position:relative}.tile .emoji{font-size:24px}.tile h3{margin:10px 0 6px;font-size:16px}.tile p{margin:0;color:var(--muted);font-size:13px;line-height:1.55}.fav{position:absolute;right:12px;top:10px;font-size:20px;color:#b5aa98}.fav.on{color:#a77839}.tag{display:inline-block;margin-top:10px;padding:4px 8px;border-radius:999px;background:#eee6d8;color:#6e6559;font-size:11px}
+.avoid{display:flex;gap:12px;padding:11px 0;border-bottom:1px solid var(--line)}.avoid:last-child{border:0}.avoid i{font-style:normal;color:var(--danger)}
+.filters{display:flex;gap:8px;overflow:auto;padding-bottom:8px}.filter{white-space:nowrap;border:1px solid var(--line);background:#fffaf1;border-radius:999px;padding:8px 13px;font-size:13px}.filter.on{background:var(--green);color:white;border-color:var(--green)}
+.symptoms{display:grid;grid-template-columns:1fr 1fr;gap:10px}.sym{border:1px solid var(--line);background:#fffaf1;border-radius:16px;padding:14px}.sym.on{border-color:var(--green);background:#e8efe9}.sym b{display:block}.sym small{color:var(--muted)}
+.match-btn{width:100%;margin-top:14px;padding:14px;border:0;border-radius:16px;background:var(--green);color:#fff;font-weight:700;font-size:15px}
+.empty{text-align:center;color:var(--muted);padding:28px}.notice{background:#f0e5d3;border-radius:16px;padding:14px;color:#6e604c;font-size:13px;line-height:1.6}
+nav{position:fixed;left:0;right:0;bottom:0;background:rgba(250,246,238,.97);border-top:1px solid var(--line);padding:8px 12px calc(8px + env(safe-area-inset-bottom));display:flex;justify-content:center;z-index:20}
+.nav-inner{max-width:720px;width:100%;display:grid;grid-template-columns:repeat(4,1fr)}.nav-btn{text-align:center;padding:7px;color:#81796e;font-size:12px}.nav-btn .ico{font-size:21px;display:block;margin-bottom:3px}.nav-btn.on{color:var(--green);font-weight:700}
+.page{display:none}.page.on{display:block}.list-item{display:flex;gap:13px;padding:14px 0;border-bottom:1px solid var(--line)}.list-item:last-child{border:0}.list-item .icon{width:42px;height:42px;border-radius:13px;background:#e7eee8;display:grid;place-items:center;font-size:21px;flex:0 0 auto}.list-item h3{margin:0 0 5px;font-size:16px}.list-item p{margin:0;color:var(--muted);font-size:13px;line-height:1.5}.list-item .heart{margin-left:auto;font-size:20px;color:#b5aa98}.heart.on{color:var(--gold)}
+.modal{position:fixed;inset:0;background:rgba(22,31,27,.38);display:none;align-items:flex-end;z-index:50}.modal.on{display:flex}.sheet{background:var(--bg);width:100%;max-width:720px;margin:0 auto;border-radius:26px 26px 0 0;padding:20px 18px calc(24px + env(safe-area-inset-bottom));max-height:88vh;overflow:auto}.sheet-head{display:flex;justify-content:space-between;gap:10px}.sheet h2{font-family:serif;margin:0 0 6px}.close{border:0;background:#e9e0d3;width:34px;height:34px;border-radius:50%;font-size:20px}.sheet h4{margin:20px 0 8px}.sheet p,.sheet li{line-height:1.7;color:#5f625b;font-size:14px}.sheet ul{padding-left:18px}.badge{display:inline-block;padding:5px 8px;background:#e6ede7;border-radius:999px;font-size:12px;margin:2px 5px 2px 0}
+.footer-note{margin:24px 4px;color:#8b847a;font-size:11px;line-height:1.65;text-align:center}
+@media(max-width:390px){.grid,.symptoms{grid-template-columns:1fr}.brand{font-size:29px}.score{font-size:40px}}
+</style>
+</head>
+<body>
+<div class="app">
+<header><div><div class="brand">秋润</div><div style="font-size:12px;color:#7a7b70;margin-top:4px">秋冬润燥 · 日常调养</div></div><div class="date" id="date"></div></header>
+
+<section id="today" class="page on">
+<div class="hero">
+  <div class="hero-top"><div><div class="pill" id="term">秋燥期</div><h2 id="greeting">今日宜润，不宜猛补</h2></div><div class="score"><span id="score">82</span><small>/100</small></div></div>
+  <p id="advice">少辛、多润、温饮，先护鼻咽与皮肤屏障。若口鼻明显干燥，优先补水、加湿与规律睡眠。</p>
+</div>
+
+<div class="section"><div class="section-title">今日五事 <span id="ritualCount">0/5</span></div><div class="card" id="rituals"></div></div>
+
+<div class="section"><div class="section-title">温水 8 杯 <span>约 1500–2000 ml，可按个人情况调整</span></div><div class="card"><div class="water" id="water"></div><div class="progress" id="waterText"></div></div></div>
+
+<div class="section"><div class="section-title">今日推荐 <span>离线内容</span></div><div class="grid" id="featured"></div></div>
+
+<div class="section"><div class="section-title">秋冬宜避</div><div class="card" id="avoids"></div></div>
+<div class="footer-note">本应用仅提供一般生活方式与饮食调养信息，不替代诊断或治疗。持续高热、呼吸困难、明显出血、脱水或症状持续加重，请及时就医。</div>
+</section>
+
+<section id="methods" class="page">
+<div class="section"><div class="section-title">润燥方法 <span>按类别筛选</span></div><div class="filters" id="methodFilters"></div><div class="card" id="methodList"></div></div>
+</section>
+
+<section id="match" class="page">
+<div class="section"><div class="section-title">对症匹配 <span>可多选</span></div><div class="symptoms" id="symptoms"></div><button class="match-btn" id="matchBtn">生成我的调养建议</button></div>
+<div class="section" id="matchResultWrap" style="display:none"><div class="section-title">匹配结果 <span id="matchCount"></span></div><div class="card" id="matchResults"></div></div>
+</section>
+
+<section id="recipes" class="page">
+<div class="section"><div class="section-title">茶饮与食养 <span>温润为主</span></div><div class="filters" id="recipeFilters"></div><div class="card" id="recipeList"></div></div>
+</section>
+</div>
+
+<nav><div class="nav-inner">
+<div class="nav-btn on" data-page="today"><span class="ico">☀️</span>今日</div>
+<div class="nav-btn" data-page="methods"><span class="ico">🌿</span>方法</div>
+<div class="nav-btn" data-page="match"><span class="ico">🩺</span>对症</div>
+<div class="nav-btn" data-page="recipes"><span class="ico">🍵</span>茶饮</div>
+</div></nav>
+
+<div class="modal" id="modal"><div class="sheet"><div class="sheet-head"><div><h2 id="modalTitle"></h2><div id="modalTags"></div></div><button class="close" id="closeModal">×</button></div><div id="modalBody"></div></div></div>
+
+<script>
+(function(){
+const state=JSON.parse(localStorage.getItem('qiurun-offline-v1')||'{}');
+state.rituals=state.rituals||{};state.water=state.water||0;state.favs=state.favs||{};state.symptoms=state.symptoms||{};
+const save=()=>localStorage.setItem('qiurun-offline-v1',JSON.stringify(state));
+const rituals=[
+['起床温水','醒后 200–300 ml，小口慢饮'],['午前润果','梨、苹果、橙等任选其一'],['鼻咽保湿','室内不过干，鼻腔可用生理盐水喷雾'],['皮肤锁水','洗浴后 3 分钟内涂无香保湿霜'],['尽量早睡','减少熬夜与长时间空调直吹']
+];
+const avoids=[
+['🌶️','辛辣与烈性刺激','口鼻咽干时先减少辣椒、烈酒等刺激'],['♨️','过热洗浴','热水久洗会增加皮肤水分流失'],['🔥','暖风直吹','暖气、空调不要持续对着面部与床位'],['🧊','大量冰冷食物','胃肠不适或怕冷时尤其避免'],['🌙','连续熬夜','睡眠不足会放大口干、眼干和皮肤不适'],['🏃','大汗后不补水','运动后分次补水，避免一次猛灌']
+];
+const methods=[
+{id:'humidify',icon:'💧',title:'室内加湿',cat:'起居',brief:'把体感湿度维持在舒适区间，避免暖气导致的过度干燥。',steps:['使用加湿器或晾湿毛巾','每天换水并清洁水箱','感觉闷湿或窗面结露时降低湿度'],caution:'加湿器需勤清洗，避免滋生微生物。',sym:['dry-nose','dry-throat','dry-skin','dry-eye']},
+{id:'skin',icon:'🧴',title:'洗后 3 分钟保湿',cat:'护肤',brief:'减少热水久洗，洗后及时锁水。',steps:['温水短浴，不用过热水','轻拍干，不反复搓擦','趁皮肤微湿涂无香保湿霜或凡士林类封闭剂'],caution:'有渗液、化脓、明显红肿痛时先就医评估。',sym:['dry-skin','itch']},
+{id:'saline',icon:'👃',title:'鼻腔生理盐水保湿',cat:'护理',brief:'适合空气干燥导致的鼻腔干涩、结痂。',steps:['选正规等渗生理盐水喷雾','每日按需少量喷用','动作轻柔，不抠结痂'],caution:'反复鼻出血或出血量大应就医。',sym:['dry-nose','nosebleed']},
+{id:'voice',icon:'🫗',title:'咽喉温润',cat:'起居',brief:'温水分次饮用，减少长时间高声讲话。',steps:['温水少量多次','减少烟雾与粉尘刺激','需要长时间讲话时安排间歇'],caution:'吞咽明显困难、呼吸困难或高热要尽快就医。',sym:['dry-throat','dry-cough']},
+{id:'sleep',icon:'🌙',title:'规律睡眠',cat:'起居',brief:'固定上床时间，降低夜间口干和疲劳叠加。',steps:['尽量固定入睡时间','睡前 1 小时降低屏幕刺激','卧室避免暖风直吹'],caution:'长期严重失眠需进一步评估。',sym:['insomnia','dry-eye']},
+{id:'steam',icon:'🌫️',title:'温热蒸汽短时润喉',cat:'护理',brief:'短时间吸入温暖湿润空气，可缓解干涩感。',steps:['洗脸盆盛温热水即可','保持距离，5–10 分钟','结束后补温水'],caution:'避免烫伤；儿童必须由成人看护。',sym:['dry-throat','dry-nose','dry-cough']},
+{id:'pear',icon:'🍐',title:'梨类食养',cat:'食养',brief:'作为普通水果补水，避免把食疗当药物治疗。',steps:['直接吃成熟鲜梨','怕冷或胃不舒服可蒸熟','控制总糖量'],caution:'糖代谢异常者注意份量。',sym:['dry-throat','constipation']},
+{id:'sesame',icon:'⚫',title:'芝麻坚果适量',cat:'食养',brief:'提供脂肪和能量，适合秋冬饮食搭配。',steps:['无盐坚果每日一小把','芝麻可拌粥或酸奶','与正餐总热量一起考虑'],caution:'坚果过敏者避免。',sym:['dry-skin','constipation']},
+{id:'blink',icon:'👁️',title:'20-20-20 眼休息',cat:'护理',brief:'屏幕使用时主动眨眼和远眺。',steps:['每 20 分钟远眺约 20 秒','有意识完整眨眼','减少空调直吹眼睛'],caution:'持续眼痛、视力下降、畏光应就医。',sym:['dry-eye']},
+{id:'fiber',icon:'🥬',title:'增加可溶性纤维',cat:'食养',brief:'配合饮水改善秋冬便秘倾向。',steps:['燕麦、蔬果、豆类逐步增加','同时保证水分','保持日常活动'],caution:'腹胀明显时要循序增加。',sym:['constipation']},
+{id:'walk',icon:'🚶',title:'轻度户外活动',cat:'起居',brief:'天气适宜时散步 20–40 分钟，避免大汗淋漓。',steps:['中低强度为主','出汗后及时换干衣并补水','空气污染严重时改室内'],caution:'胸闷、气促时停止运动。',sym:['insomnia','constipation']},
+{id:'acupressure',icon:'🤲',title:'合谷/迎香轻按',cat:'按揉',brief:'以舒适轻按为主，不追求疼痛刺激。',steps:['每处轻按 30–60 秒','每日 1–2 次即可','保持手部清洁'],caution:'孕期、局部皮损或明显疼痛时不自行强刺激。',sym:['dry-nose','dry-throat']}
+];
+const recipes=[
+{id:'pear-lily',icon:'🍐',title:'雪梨百合饮',cat:'润燥',brief:'清甜温润，适合口咽干燥时作为普通饮品。',ingredients:['雪梨 1 个','干百合 10–15 g','水 600 ml'],steps:['食材洗净','小火煮 20–30 分钟','温热饮用，不额外大量加糖'],caution:'糖代谢异常者控制梨和加糖量。',sym:['dry-throat','dry-cough']},
+{id:'radish-chenpi',icon:'🥕',title:'白萝卜陈皮水',cat:'两顾',brief:'偏清淡，适合油腻后或轻微咽部不适。',ingredients:['白萝卜 150 g','陈皮 2–3 g','水 700 ml'],steps:['切片后与陈皮同煮','煮 20 分钟','温热饮用'],caution:'胃酸明显或空腹不适者少量尝试。',sym:['dry-throat','constipation']},
+{id:'apple-date',icon:'🍎',title:'苹果红枣水',cat:'温润',brief:'口感温和，适合天气转凉时饮用。',ingredients:['苹果半个','红枣 2–3 枚','水 600 ml'],steps:['去核切块','煮 15–20 分钟','不必额外加糖'],caution:'总糖摄入需要控制时减少红枣。',sym:['dry-throat']},
+{id:'chrysanthemum',icon:'🌼',title:'菊花枸杞饮',cat:'清润',brief:'适合长期看屏幕后作为无糖热饮。',ingredients:['菊花 3–5 朵','枸杞 5–8 粒','热水 400 ml'],steps:['温杯后冲泡','焖 5 分钟','可续水 1 次'],caution:'对菊科植物过敏者避免。',sym:['dry-eye']},
+{id:'oat',icon:'🥣',title:'燕麦银耳羹',cat:'润燥',brief:'富含水分与膳食纤维，适合早餐或加餐。',ingredients:['泡发银耳 30 g','燕麦 30 g','水 700 ml'],steps:['银耳先煮软','加入燕麦再煮 8–10 分钟','按需加入少量水果'],caution:'不建议用大量冰糖把它变成高糖甜品。',sym:['constipation','dry-skin']},
+{id:'honey',icon:'🍯',title:'温蜂蜜水',cat:'润燥',brief:'成人可少量作为温饮选择。',ingredients:['温水 250 ml','蜂蜜 5–10 g'],steps:['水温不烫口','搅匀后缓慢饮用'],caution:'1 岁以下婴儿禁用蜂蜜；糖代谢异常者慎用。',sym:['dry-throat']},
+{id:'soy',icon:'🥛',title:'无糖豆浆',cat:'温润',brief:'补充水分与蛋白质，适合早餐搭配。',ingredients:['无糖豆浆 250–300 ml'],steps:['充分煮熟','温热饮用','与主食、鸡蛋等搭配'],caution:'大豆过敏者避免。',sym:['dry-skin']},
+{id:'lotus',icon:'🪷',title:'莲藕瘦肉汤',cat:'两顾',brief:'作为普通家常汤，注意少盐少油。',ingredients:['莲藕 200 g','瘦肉 100 g','水适量'],steps:['食材洗净切块','煲至熟软','少盐调味'],caution:'汤不能替代饮水，肉汤也应控制盐分。',sym:['dry-throat','dry-skin']},
+{id:'barley',icon:'🌾',title:'小米南瓜粥',cat:'温润',brief:'温软易入口，适合胃口一般时。',ingredients:['小米 40 g','南瓜 100 g','水 700 ml'],steps:['小米淘洗','南瓜切块同煮','煮至软糯'],caution:'糖代谢异常者注意南瓜与主食总量。',sym:['dry-throat','constipation']},
+{id:'water',icon:'🫗',title:'温白水',cat:'基础',brief:'最基础也最稳定的补水方案。',ingredients:['温水 200–300 ml'],steps:['分次、小口','根据活动量和口渴调整','不追求短时间大量饮水'],caution:'心肾功能异常需遵医嘱控制饮水量。',sym:['dry-throat','dry-nose','dry-eye','constipation']}
+];
+const symptomDefs=[
+['dry-throat','咽干','讲话多、空调房常见'],['dry-nose','鼻干','结痂、干涩'],['nosebleed','鼻出血','干燥时偶发'],['dry-cough','干咳','无痰或少痰'],['dry-skin','皮肤干','紧绷、起屑'],['itch','瘙痒','干燥后加重'],['dry-eye','眼干','屏幕使用多'],['constipation','便干','排便费力'],['insomnia','睡不好','入睡晚、易醒'],['mouth','口干','饮水少或环境干']
+];
+function setDate(){
+ const d=new Date(),wd=['日','一','二','三','四','五','六'];
+ document.getElementById('date').innerHTML=(d.getMonth()+1)+'月'+d.getDate()+'日<br>星期'+wd[d.getDay()];
+ const m=d.getMonth()+1,day=d.getDate();
+ let score=72;
+ if(m===10||m===11)score=86;if(m===12||m<=2)score=78;if(m>=6&&m<=8)score=45;
+ score+=Math.min(8,Math.max(0,(day%5)*2));
+ document.getElementById('score').textContent=score;
+ document.getElementById('term').textContent=m>=9&&m<=11?'秋燥期':(m===12||m<=2?'冬燥期':'日常润养');
+}
+function renderRituals(){
+ const box=document.getElementById('rituals');box.innerHTML='';
+ rituals.forEach((r,i)=>{const row=document.createElement('div');row.className='ritual';row.innerHTML='<div class="check '+(state.rituals[i]?'done':'')+'">'+(state.rituals[i]?'✓':'')+'</div><div><b>'+r[0]+'</b><small>'+r[1]+'</small></div>';row.onclick=()=>{state.rituals[i]=!state.rituals[i];save();renderRituals()};box.appendChild(row)});
+ document.getElementById('ritualCount').textContent=Object.values(state.rituals).filter(Boolean).length+'/5';
+}
+function renderWater(){
+ const box=document.getElementById('water');box.innerHTML='';
+ for(let i=0;i<8;i++){const c=document.createElement('div');c.className='cup '+(i<state.water?'on':'');c.textContent='💧';c.onclick=()=>{state.water=(state.water>=8?0:i+1);save();renderWater()};box.appendChild(c)}
+ document.getElementById('waterText').textContent=state.water>=8?'今日 8 杯完成 ✓':'已记录 '+state.water+' / 8 杯';
+}
+function favKey(type,id){return type+':'+id}
+function toggleFav(type,id){const k=favKey(type,id);state.favs[k]=!state.favs[k];save();renderFeatured();renderMethods();renderRecipes()}
+function renderFeatured(){
+ const items=[methods[0],methods[1],recipes[0],recipes[3]],box=document.getElementById('featured');box.innerHTML='';
+ items.forEach(x=>{const type=x.ingredients?'recipe':'method',el=document.createElement('div');el.className='tile';el.innerHTML='<div class="fav '+(state.favs[favKey(type,x.id)]?'on':'')+'" data-fav="1">★</div><div class="emoji">'+x.icon+'</div><h3>'+x.title+'</h3><p>'+x.brief+'</p><span class="tag">'+x.cat+'</span>';el.querySelector('[data-fav]').onclick=(e)=>{e.stopPropagation();toggleFav(type,x.id)};el.onclick=()=>showDetail(type,x);box.appendChild(el)})
+}
+function renderAvoids(){const b=document.getElementById('avoids');b.innerHTML=avoids.map(x=>'<div class="avoid"><i>'+x[0]+'</i><div><b>'+x[1]+'</b><div style="font-size:13px;color:#7a7b70;margin-top:3px">'+x[2]+'</div></div></div>').join('')}
+let methodFilter='全部',recipeFilter='全部';
+function filters(container,cats,active,fn){const b=document.getElementById(container);b.innerHTML='';['全部','收藏'].concat(cats).forEach(c=>{const e=document.createElement('div');e.className='filter '+(c===active?'on':'');e.textContent=c;e.onclick=()=>fn(c);b.appendChild(e)})}
+function listHtml(type,x){return '<div class="list-item" data-id="'+x.id+'"><div class="icon">'+x.icon+'</div><div><h3>'+x.title+'</h3><p>'+x.brief+'</p><span class="tag">'+x.cat+'</span></div><div class="heart '+(state.favs[favKey(type,x.id)]?'on':'')+'" data-heart="'+x.id+'">★</div></div>'}
+function renderMethods(){
+ const cats=[...new Set(methods.map(x=>x.cat))];filters('methodFilters',cats,methodFilter,c=>{methodFilter=c;renderMethods()});
+ let arr=methods;if(methodFilter==='收藏')arr=arr.filter(x=>state.favs[favKey('method',x.id)]);else if(methodFilter!=='全部')arr=arr.filter(x=>x.cat===methodFilter);
+ const b=document.getElementById('methodList');b.innerHTML=arr.length?arr.map(x=>listHtml('method',x)).join(''):'<div class="empty">还没有收藏内容</div>';
+ b.querySelectorAll('.list-item').forEach(el=>{const x=methods.find(v=>v.id===el.dataset.id);el.onclick=()=>showDetail('method',x);const h=el.querySelector('[data-heart]');h.onclick=e=>{e.stopPropagation();toggleFav('method',x.id)}})
+}
+function renderRecipes(){
+ const cats=[...new Set(recipes.map(x=>x.cat))];filters('recipeFilters',cats,recipeFilter,c=>{recipeFilter=c;renderRecipes()});
+ let arr=recipes;if(recipeFilter==='收藏')arr=arr.filter(x=>state.favs[favKey('recipe',x.id)]);else if(recipeFilter!=='全部')arr=arr.filter(x=>x.cat===recipeFilter);
+ const b=document.getElementById('recipeList');b.innerHTML=arr.length?arr.map(x=>listHtml('recipe',x)).join(''):'<div class="empty">还没有收藏内容</div>';
+ b.querySelectorAll('.list-item').forEach(el=>{const x=recipes.find(v=>v.id===el.dataset.id);el.onclick=()=>showDetail('recipe',x);const h=el.querySelector('[data-heart]');h.onclick=e=>{e.stopPropagation();toggleFav('recipe',x.id)}})
+}
+function renderSymptoms(){
+ const b=document.getElementById('symptoms');b.innerHTML='';
+ symptomDefs.forEach(s=>{const e=document.createElement('div');e.className='sym '+(state.symptoms[s[0]]?'on':'');e.innerHTML='<b>'+s[1]+'</b><small>'+s[2]+'</small>';e.onclick=()=>{state.symptoms[s[0]]=!state.symptoms[s[0]];save();renderSymptoms()};b.appendChild(e)})
+}
+function doMatch(){
+ const selected=Object.keys(state.symptoms).filter(k=>state.symptoms[k]);let candidates=[];
+ methods.forEach(x=>{const n=(x.sym||[]).filter(s=>selected.includes(s)).length;if(n)candidates.push({type:'method',x,score:n})});
+ recipes.forEach(x=>{const n=(x.sym||[]).filter(s=>selected.includes(s)).length;if(n)candidates.push({type:'recipe',x,score:n})});
+ candidates.sort((a,b)=>b.score-a.score);const wrap=document.getElementById('matchResultWrap'),b=document.getElementById('matchResults');wrap.style.display='block';
+ document.getElementById('matchCount').textContent=selected.length+' 项症状';
+ if(!selected.length){b.innerHTML='<div class="empty">先选择你现在最明显的症状</div>';return}
+ if(!candidates.length){b.innerHTML='<div class="empty">暂时没有精确匹配，建议先从补水、加湿和规律睡眠开始。</div>';return}
+ b.innerHTML='<div class="notice" style="margin-bottom:8px">以下为生活调养匹配，不代表医学诊断。若症状明显、反复或持续加重，请就医。</div>'+candidates.slice(0,8).map(o=>listHtml(o.type,o.x)).join('');
+ b.querySelectorAll('.list-item').forEach(el=>{const o=candidates.find(c=>c.x.id===el.dataset.id);el.onclick=()=>showDetail(o.type,o.x);const h=el.querySelector('[data-heart]');h.onclick=e=>{e.stopPropagation();toggleFav(o.type,o.x.id)}})
+}
+function showDetail(type,x){
+ document.getElementById('modalTitle').textContent=x.icon+' '+x.title;
+ document.getElementById('modalTags').innerHTML='<span class="badge">'+x.cat+'</span>'+(state.favs[favKey(type,x.id)]?'<span class="badge">已收藏</span>':'');
+ let body='<p>'+x.brief+'</p>';
+ if(x.ingredients)body+='<h4>材料</h4><ul>'+x.ingredients.map(v=>'<li>'+v+'</li>').join('')+'</ul>';
+ body+='<h4>'+(x.ingredients?'做法':'步骤')+'</h4><ul>'+x.steps.map(v=>'<li>'+v+'</li>').join('')+'</ul><h4>注意</h4><div class="notice">'+x.caution+'</div>';
+ document.getElementById('modalBody').innerHTML=body;document.getElementById('modal').classList.add('on')
+}
+function openPage(id){
+ document.querySelectorAll('.page').forEach(x=>x.classList.toggle('on',x.id===id));
+ document.querySelectorAll('.nav-btn').forEach(x=>x.classList.toggle('on',x.dataset.page===id));
+ window.scrollTo(0,0);location.hash=id
+}
+document.querySelectorAll('.nav-btn').forEach(n=>n.onclick=()=>openPage(n.dataset.page));
+document.getElementById('closeModal').onclick=()=>document.getElementById('modal').classList.remove('on');
+document.getElementById('modal').onclick=e=>{if(e.target.id==='modal')document.getElementById('modal').classList.remove('on')};
+document.getElementById('matchBtn').onclick=doMatch;
+setDate();renderRituals();renderWater();renderFeatured();renderAvoids();renderMethods();renderRecipes();renderSymptoms();
+const start=(location.hash||'#today').slice(1);if(['today','methods','match','recipes'].includes(start))openPage(start);
+})();
+</script>
+</body>
+</html>
