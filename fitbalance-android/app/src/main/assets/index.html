@@ -56,6 +56,22 @@
   </div>
 
   <div class="section">
+    <div class="section-title"><h2>今日负 Buff</h2><span>行为负荷 · 非临床风险评分</span></div>
+    <div class="card">
+      <div class="between">
+        <div>
+          <div class="note">把吸烟、酒精和熬夜当成可减少的负荷，而不是“赚到运动量就能抵消”。</div>
+          <div class="buff-chips" id="buffChips"></div>
+        </div>
+        <div class="buff-score"><strong id="buffScore">0</strong><small>/100</small></div>
+      </div>
+      <div class="buff-meter"><i id="buffMeter"></i></div>
+      <div class="note" id="buffSummary" style="margin-top:10px"></div>
+      <div class="mini-trend" id="behaviorTrend"></div>
+    </div>
+  </div>
+
+  <div class="section">
     <div class="section-title"><h2>身体趋势</h2><span id="bmiLabel">BMI --</span></div>
     <div class="card">
       <div class="grid3">
@@ -176,6 +192,23 @@
       </div>
       <button class="btn" id="saveProfileBtn" style="width:100%;margin-top:14px">保存身体资料</button>
       <div class="note" id="profileCalc" style="margin-top:12px"></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><h2>生活习惯负 Buff</h2><span>每天记录一次即可</span></div>
+    <div class="card">
+      <div class="field-grid">
+        <div class="field"><label>香烟（支/天）</label><input id="cigarettes" type="number" inputmode="numeric" min="0" value="0"></div>
+        <div class="field"><label>熬夜时长（小时）</label><input id="lateHours" type="number" inputmode="decimal" min="0" step="0.5" value="0"></div>
+        <div class="field"><label>啤酒（ml）</label><input id="beerMl" type="number" inputmode="decimal" min="0" value="0"></div>
+        <div class="field"><label>啤酒酒精度（%vol）</label><input id="beerAbv" type="number" inputmode="decimal" min="0" max="20" step="0.1" value="5"></div>
+        <div class="field"><label>白酒（ml）</label><input id="baijiuMl" type="number" inputmode="decimal" min="0" value="0"></div>
+        <div class="field"><label>白酒酒精度（%vol）</label><input id="baijiuAbv" type="number" inputmode="decimal" min="0" max="80" step="0.1" value="52"></div>
+      </div>
+      <div class="alert" id="alcoholCalc" style="margin-top:12px">纯酒精估算：0 g</div>
+      <button class="btn" id="saveBehaviorBtn" style="width:100%;margin-top:12px">保存今日负 Buff</button>
+      <div class="note" style="margin-top:10px">烟草没有安全暴露水平；酒精也不能把非零摄入解释成“安全”。这里的 0–100 负荷仅用于个人行为趋势，不是心血管、癌症或死亡风险评分。</div>
     </div>
   </div>
 
