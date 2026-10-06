@@ -13,24 +13,32 @@ import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 
 public class FitDatabase extends SQLiteOpenHelper {
     private static final String DB_NAME = "fitbalance.db";
-    private static final int DB_VERSION = 1;
+    private static final int DB_VERSION = 2;
     private static final int ZHUANGZI_TOTAL_DAYS = 30;
     private final Context context;
 
     public FitDatabase(Context context) {
         super(context, DB_NAME, null, DB_VERSION);
         this.context = context.getApplicationContext();
-        ensureSeeded();
+        ensureZhuangziSeeded();
+        ensureHealthRulesSeeded();
         ensureStartDate();
     }
 
     @Override
     public void onCreate(SQLiteDatabase db) {
+        createCoreTables(db);
+        createHealthRuleTables(db);
+    }
+
+    private void createCoreTables(SQLiteDatabase db) {
         db.execSQL(
                 "CREATE TABLE IF NOT EXISTS zhuangzi_content (" +
                         "id INTEGER PRIMARY KEY," +
@@ -76,9 +84,42 @@ public class FitDatabase extends SQLiteOpenHelper {
         );
     }
 
+    private void createHealthRuleTables(SQLiteDatabase db) {
+        db.execSQL(
+                "CREATE TABLE IF NOT EXISTS evidence (" +
+                        "id TEXT PRIMARY KEY," +
+                        "title TEXT NOT NULL," +
+                        "organization TEXT NOT NULL," +
+                        "year INTEGER NOT NULL," +
+                        "url TEXT NOT NULL," +
+                        "evidence_level TEXT NOT NULL," +
+                        "scope TEXT NOT NULL," +
+                        "content_version INTEGER NOT NULL DEFAULT 1" +
+                        ")"
+        );
+
+        db.execSQL(
+                "CREATE TABLE IF NOT EXISTS food_disease_rules (" +
+                        "id INTEGER PRIMARY KEY AUTOINCREMENT," +
+                        "food_id TEXT NOT NULL," +
+                        "disease TEXT NOT NULL," +
+                        "status TEXT NOT NULL," +
+                        "reason TEXT NOT NULL," +
+                        "evidence_id TEXT NOT NULL," +
+                        "content_version INTEGER NOT NULL DEFAULT 1," +
+                        "UNIQUE(food_id,disease)" +
+                        ")"
+        );
+
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_food_rules_food ON food_disease_rules(food_id)");
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_food_rules_disease ON food_disease_rules(disease)");
+    }
+
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-        // Forward-only migrations are added here as schema evolves.
+        if (oldVersion < 2) {
+            createHealthRuleTables(db);
+        }
     }
 
     private String nowIso() {
@@ -99,7 +140,7 @@ public class FitDatabase extends SQLiteOpenHelper {
         }
     }
 
-    private void ensureSeeded() {
+    private void ensureZhuangziSeeded() {
         SQLiteDatabase db = getWritableDatabase();
         long count = 0;
         try (Cursor c = db.rawQuery("SELECT COUNT(*) FROM zhuangzi_content", null)) {
@@ -144,6 +185,63 @@ public class FitDatabase extends SQLiteOpenHelper {
             throw new RuntimeException("Failed to seed Zhuangzi content", e);
         } finally {
             db.endTransaction();
+        }
+    }
+
+    private void ensureHealthRulesSeeded() {
+        SQLiteDatabase db = getWritableDatabase();
+        createHealthRuleTables(db);
+
+        String current = getMeta(db, "health_rules_version");
+        try {
+            JSONObject root = new JSONObject(readAsset("health_rules_seed.json"));
+            int version = root.optInt("version", 1);
+            if (String.valueOf(version).equals(current)) return;
+
+            db.beginTransaction();
+            try {
+                db.delete("food_disease_rules", null, null);
+                db.delete("evidence", null, null);
+
+                JSONArray evidence = root.getJSONArray("evidence");
+                for (int i = 0; i < evidence.length(); i++) {
+                    JSONObject o = evidence.getJSONObject(i);
+                    ContentValues v = new ContentValues();
+                    v.put("id", o.getString("id"));
+                    v.put("title", o.getString("title"));
+                    v.put("organization", o.getString("organization"));
+                    v.put("year", o.getInt("year"));
+                    v.put("url", o.getString("url"));
+                    v.put("evidence_level", o.getString("level"));
+                    v.put("scope", o.getString("scope"));
+                    v.put("content_version", version);
+                    db.insertOrThrow("evidence", null, v);
+                }
+
+                JSONArray rules = root.getJSONArray("rules");
+                for (int i = 0; i < rules.length(); i++) {
+                    JSONArray row = rules.getJSONArray(i);
+                    ContentValues v = new ContentValues();
+                    v.put("food_id", row.getString(0));
+                    v.put("disease", row.getString(1));
+                    v.put("status", row.getString(2));
+                    v.put("reason", row.getString(3));
+                    v.put("evidence_id", row.getString(4));
+                    v.put("content_version", version);
+                    db.insertOrThrow("food_disease_rules", null, v);
+                }
+
+                ContentValues meta = new ContentValues();
+                meta.put("key", "health_rules_version");
+                meta.put("value", String.valueOf(version));
+                db.insertWithOnConflict("app_meta", null, meta, SQLiteDatabase.CONFLICT_REPLACE);
+
+                db.setTransactionSuccessful();
+            } finally {
+                db.endTransaction();
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to seed health rules", e);
         }
     }
 
@@ -273,5 +371,77 @@ public class FitDatabase extends SQLiteOpenHelper {
                 v,
                 SQLiteDatabase.CONFLICT_REPLACE
         ) != -1;
+    }
+
+    private int severity(String status) {
+        if ("red".equals(status)) return 3;
+        if ("yellow".equals(status)) return 2;
+        if ("green".equals(status)) return 1;
+        return 0;
+    }
+
+    private JSONObject readFoodRule(SQLiteDatabase db, String foodId, String disease) {
+        try (Cursor c = db.rawQuery(
+                "SELECT r.status,r.reason,r.evidence_id,e.title,e.organization,e.year,e.url,e.evidence_level " +
+                        "FROM food_disease_rules r LEFT JOIN evidence e ON r.evidence_id=e.id " +
+                        "WHERE r.food_id=? AND r.disease=? LIMIT 1",
+                new String[]{foodId, disease})) {
+            if (!c.moveToFirst()) return null;
+            JSONObject o = new JSONObject();
+            o.put("disease", disease);
+            o.put("status", c.getString(0));
+            o.put("reason", c.getString(1));
+            o.put("evidence_id", c.getString(2));
+            JSONObject e = new JSONObject();
+            e.put("title", c.getString(3));
+            e.put("organization", c.getString(4));
+            e.put("year", c.getInt(5));
+            e.put("url", c.getString(6));
+            e.put("level", c.getString(7));
+            o.put("evidence", e);
+            return o;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    public String evaluateFoodRiskJson(String foodId, String profileJson) {
+        JSONObject out = new JSONObject();
+        JSONArray items = new JSONArray();
+        try {
+            JSONObject p = new JSONObject(profileJson == null ? "{}" : profileJson);
+            List<String> diseases = new ArrayList<>();
+            if (p.optBoolean("gout", false)) diseases.add("gout");
+            if (p.optBoolean("diabetes", false)) diseases.add("diabetes");
+            if (p.optBoolean("hypertension", false)) diseases.add("hypertension");
+            if (p.optBoolean("heartDisease", false) ||
+                    p.optBoolean("priorMI", false) ||
+                    p.optBoolean("priorStroke", false)) {
+                diseases.add("cardiovascular");
+            }
+
+            SQLiteDatabase db = getReadableDatabase();
+            String worst = "neutral";
+            int worstSeverity = 0;
+
+            for (String disease : diseases) {
+                JSONObject rule = readFoodRule(db, foodId, disease);
+                if (rule == null) continue;
+                items.put(rule);
+                int s = severity(rule.optString("status", "neutral"));
+                if (s > worstSeverity) {
+                    worstSeverity = s;
+                    worst = rule.optString("status", "neutral");
+                }
+            }
+
+            out.put("food_id", foodId);
+            out.put("status", worst);
+            out.put("items", items);
+            out.put("has_rules", items.length() > 0);
+            out.put("rules_version", getMeta(db, "health_rules_version"));
+        } catch (Exception ignored) {
+        }
+        return out.toString();
     }
 }
