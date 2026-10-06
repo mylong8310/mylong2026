@@ -43,6 +43,7 @@ public class MainActivity extends Activity implements SensorEventListener {
     private float currentCounter = -1f;
     private boolean sensorRegistered = false;
     private SharedPreferences prefs;
+    private FitDatabase database;
     private ValueCallback<Uri[]> filePathCallback;
     private Uri cameraUri;
 
@@ -56,6 +57,7 @@ public class MainActivity extends Activity implements SensorEventListener {
         getWindow().getDecorView().setSystemUiVisibility(0);
 
         prefs = getSharedPreferences("fitbalance_native", MODE_PRIVATE);
+        database = new FitDatabase(this);
 
         webView = new WebView(this);
         webView.setBackgroundColor(Color.rgb(9, 14, 11));
@@ -243,8 +245,23 @@ public class MainActivity extends Activity implements SensorEventListener {
         }
 
         @JavascriptInterface
+        public String getZhuangziStatusJson() {
+            return database != null ? database.getZhuangziStatusJson() : "{}";
+        }
+
+        @JavascriptInterface
+        public String getZhuangziDayJson(int dayNo) {
+            return database != null ? database.getZhuangziDayJson(dayNo) : "{}";
+        }
+
+        @JavascriptInterface
+        public boolean setZhuangziCheckin(int dayNo, boolean checked) {
+            return database != null && database.setZhuangziCheckin(dayNo, checked);
+        }
+
+        @JavascriptInterface
         public String appVersion() {
-            return "1.2.0";
+            return "1.3.0";
         }
     }
 
@@ -318,6 +335,10 @@ public class MainActivity extends Activity implements SensorEventListener {
     @Override
     protected void onDestroy() {
         if (sensorManager != null) sensorManager.unregisterListener(this);
+        if (database != null) {
+            database.close();
+            database = null;
+        }
         if (webView != null) {
             webView.stopLoading();
             webView.setWebChromeClient(null);
