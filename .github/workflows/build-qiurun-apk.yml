@@ -31,16 +31,21 @@ jobs:
         with:
           gradle-version: '8.11.1'
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
       - name: Install Android SDK packages
+        shell: bash
         run: |
+          export ANDROID_HOME="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          export ANDROID_SDK_ROOT="$ANDROID_HOME"
+          export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH"
           yes | sdkmanager --licenses >/dev/null || true
           sdkmanager "platforms;android-35" "build-tools;35.0.0"
 
       - name: Build debug APK
-        run: gradle -p qiurun-android :app:assembleDebug --no-daemon --stacktrace
+        shell: bash
+        run: |
+          export ANDROID_HOME="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          export ANDROID_SDK_ROOT="$ANDROID_HOME"
+          gradle -p qiurun-android :app:assembleDebug --no-daemon --stacktrace
 
       - name: Rename APK
         run: cp qiurun-android/app/build/outputs/apk/debug/app-debug.apk Qiurun-v1.0.0.apk
