@@ -1,101 +1,150 @@
 ---
-name: offline-android-app-release
-description: Build a self-contained Android APK from a mobile web app, bundle all HTML/CSS/JS/assets locally, add optional native Android bridges (sensors/camera), build in GitHub Actions, and publish a public GitHub Release APK.
+name: dual-platform-mobile-staged-release
+description: Build a shared-code mobile app compatible with Android and iOS from day one, release Android first, and add iOS distribution only when justified by demand. Bundle the app locally, keep native bridges thin, build Android APKs in GitHub Actions, and preserve an iOS-ready WKWebView/native bridge architecture.
 ---
 
-# Offline Android App Release Skill
+# Dual-platform Mobile App / Staged Release Skill
 
-Use this skill when the user wants a mobile web prototype turned into a real Android APK that can be installed independently and shared with others.
+Use this as the default workflow for new mobile apps.
 
-## Core rule
+## Product strategy
 
-Do not ship a WebView that depends on a temporary preview URL. Bundle the application UI and data in `app/src/main/assets/` and load it with:
+Develop the product core once for both Android and iOS, but release in stages:
 
-`file:///android_asset/index.html`
+1. Shared cross-platform application core first.
+2. Android wrapper, APK build, testing, and public GitHub Release first.
+3. Keep an iOS wrapper contract and compatible APIs from the beginning.
+4. Do not pay for or configure Apple Developer Program distribution until there is real iOS user demand.
+5. When iOS demand exists, add signing, TestFlight/App Store packaging without rewriting the product core.
 
-Remote APIs are optional extensions only. Never embed private API keys or secrets in the APK.
+This avoids duplicate development and avoids premature Apple annual developer fees.
 
-## Standard project layout
+## Shared-core architecture
 
-- `<app>-android/settings.gradle`
-- `<app>-android/build.gradle`
-- `<app>-android/gradle.properties`
-- `<app>-android/app/build.gradle`
-- `<app>-android/app/src/main/AndroidManifest.xml`
-- `<app>-android/app/src/main/java/<package>/MainActivity.java`
-- `<app>-android/app/src/main/assets/index.html`
-- `<app>-android/app/src/main/res/drawable/ic_launcher.xml`
-- optional `res/xml/file_paths.xml` for camera/file chooser support
+Keep product UI, business logic, local data schema, validation, charts, questionnaires, and domain models platform-neutral.
 
-## Default Android baseline
+Preferred layout:
+
+- `<product>/shared/index.html`
+- `<product>/shared/app.css`
+- `<product>/shared/app.js`
+- `<product>/shared/assets/*`
+- `<product>/android/*`
+- `<product>/ios/*` (can remain a scaffold until needed)
+
+The Android build copies/bundles the shared core into `app/src/main/assets/`.
+The future iOS wrapper loads the same shared core in `WKWebView`.
+
+Do not fork business logic into Android-only and iOS-only implementations.
+
+## UI rule
+
+This is an app UI, not a browser page:
+
+- lock text zoom at 100%
+- disable pinch zoom and browser-style zoom controls
+- disable overscroll glow where practical
+- use edge-to-edge mobile layout
+- keep touch targets mobile-sized
+- no desktop navigation or webpage chrome
+- fixed bottom navigation is acceptable for the installed app
+- safe-area aware
+- support 320px+ logical width without page-level horizontal scrolling
+
+## Native bridge contract
+
+Expose only narrow, named capabilities. Keep a platform-neutral JavaScript facade so Android and iOS can implement the same calls.
+
+Examples:
+
+- `getTodaySteps()`
+- `requestActivityPermission()`
+- `pickOrCapturePhoto()`
+- `getAppVersion()`
+
+Android implementation examples:
+- `TYPE_STEP_COUNTER` + `ACTIVITY_RECOGNITION`
+- `WebChromeClient.onShowFileChooser` + FileProvider
+
+Future iOS implementation examples:
+- Core Motion / CMPedometer
+- WKScriptMessageHandler
+- PHPicker / UIImagePickerController as appropriate
+
+Never expose arbitrary filesystem, shell, or unrestricted native methods.
+
+## Local-first / privacy rule
+
+Bundle the UI and core data locally. Use remote services only for features that truly need them.
+
+Never embed private API keys in the APK/IPA.
+For food-photo AI, medical AI, or other paid models, use a secure backend and make upload explicit.
+
+## Android baseline
 
 - Java 17
 - Gradle 8.11.1
 - Android Gradle Plugin 8.7.3
 - compileSdk / targetSdk 35
 - minSdk 23
-- bundled local-first WebView
-- DOM/localStorage enabled
-- no network permission unless the product genuinely requires remote APIs
+- Android first public distribution through GitHub Releases
+- debug-signed APK is acceptable for sideload testing
+- production stores require stable private release signing
 
-## Native bridges
+## iOS readiness baseline
 
-When requested, expose native capabilities through a narrow JavaScript interface. Typical examples:
+Even before Apple Developer enrollment:
 
-- step counter: Android `TYPE_STEP_COUNTER` + `ACTIVITY_RECOGNITION`
-- camera/photo chooser: `WebChromeClient.onShowFileChooser` + FileProvider
-- vibration/notifications only when explicitly needed
+- keep the shared core compatible with WKWebView
+- avoid Android-only browser APIs in product logic
+- route native calls through the platform-neutral bridge facade
+- avoid reliance on filesystem URLs that cannot map to an iOS bundle
+- keep bundle identifiers and versioning documented
+- do not claim App Store/TestFlight distribution is available until signing/provisioning exists
 
-Keep the bridge minimal and never expose arbitrary file or shell access.
+## GitHub Android release workflow
 
-## GitHub workflow
+For Android-first distribution:
 
-Create a dedicated feature branch. Add a workflow under `.github/workflows/` that:
+1. create/update a feature branch
+2. checkout
+3. install Java 17 and Gradle
+4. install Android SDK
+5. assemble APK
+6. rename to stable public filename
+7. upload workflow artifact
+8. create/update GitHub Release and attach APK
 
-1. checks out the branch
-2. installs Java 17
-3. provisions Gradle
-4. installs Android SDK 35
-5. runs `:app:assembleDebug`
-6. renames the APK to a stable public filename
-7. uploads the workflow artifact
-8. publishes/updates a GitHub Release with `gh release create/upload`
+Use `permissions: contents: write` only for workflows that publish releases.
 
-Set:
+## Release naming
 
-`permissions: contents: write`
+- tag: `<product>-vMAJOR.MINOR.PATCH`
+- Android: `<Product>-Standalone-vMAJOR.MINOR.PATCH.apk`
+- later iOS releases use the same semantic product version
 
-for release publishing.
+## Health and fitness app safety
 
-## Release convention
+- calorie, macro, exercise burn, step, recovery, food-photo, alcohol and risk outputs are estimates unless explicitly measured
+- disease modes are educational decision support, not diagnosis or treatment
+- do not invent a medical mortality or cardiovascular risk score from lifestyle inputs
+- distinguish a user-facing “behavior load / negative buff” score from validated clinical risk scores
+- smoking has no safe exposure threshold
+- alcohol should be represented in grams of ethanol when possible; do not call any nonzero intake “safe”
+- diabetes fasting mode must warn users on insulin or hypoglycemia-causing medicines
+- gout mode emphasizes hydration and avoiding crash weight loss
+- high-risk cardiovascular history (hypertension, coronary disease, prior myocardial infarction, prior stroke) must trigger more conservative exercise and symptom warnings
+- preserve local privacy by default; photo upload requires explicit user action
 
-- product tag: `<product>-vMAJOR.MINOR.PATCH`
-- APK: `<Product>-Standalone-vMAJOR.MINOR.PATCH.apk`
-- release title should state that it is an independent/offline install
-- include a concise privacy and dependency note
+## Completion checklist
 
-## Validation checklist
+Before reporting Android completion:
 
-Before reporting completion:
-
-- GitHub Actions build conclusion is `success`
+- app core remains platform-neutral
+- Android scale/zoom behavior is locked
+- Android build succeeded
 - APK artifact exists
 - GitHub Release exists
-- release asset content type is Android APK
-- public `browser_download_url` exists
-- report version, package name, min Android version, and whether network access is required
-
-## Signing note
-
-Debug builds are fine for private testing and direct sideloading. For Play Store or long-term production distribution, switch to a stable private release keystore stored in GitHub Actions Secrets. Never commit the keystore or passwords to the repository.
-
-## Health-app safety
-
-For nutrition/fitness/medical-adjacent apps:
-
-- clearly label calorie, macro, step, and food-photo values as estimates
-- disease modes provide conservative educational prompts, not diagnosis or medication advice
-- diabetes fasting mode must warn users on insulin or hypoglycemia-causing medicines to confirm fasting plans with their clinician
-- gout mode should emphasize hydration and avoiding rapid/crash weight loss
-- do not claim photo nutrition analysis is exact
-- preserve local privacy by default; do not upload photos unless a user explicitly enables a remote AI service
+- public download URL exists
+- package/version/min Android documented
+- explain which features are local-only and which require future backend/iOS work
