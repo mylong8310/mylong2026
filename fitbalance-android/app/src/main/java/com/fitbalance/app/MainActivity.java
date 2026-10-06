@@ -41,9 +41,7 @@ public class MainActivity extends Activity implements SensorEventListener {
     private Sensor stepSensor;
     private float currentCounter = -1f;
     private boolean sensorRegistered = false;
-
     private SharedPreferences prefs;
-
     private ValueCallback<Uri[]> filePathCallback;
     private Uri cameraUri;
 
@@ -52,23 +50,32 @@ public class MainActivity extends Activity implements SensorEventListener {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        getWindow().setStatusBarColor(Color.rgb(15, 22, 18));
-        getWindow().setNavigationBarColor(Color.rgb(15, 22, 18));
+        getWindow().setStatusBarColor(Color.rgb(9, 14, 11));
+        getWindow().setNavigationBarColor(Color.rgb(9, 14, 11));
         getWindow().getDecorView().setSystemUiVisibility(0);
 
         prefs = getSharedPreferences("fitbalance_native", MODE_PRIVATE);
 
         webView = new WebView(this);
-        webView.setBackgroundColor(Color.rgb(15, 22, 18));
+        webView.setBackgroundColor(Color.rgb(9, 14, 11));
+        webView.setOverScrollMode(View.OVER_SCROLL_NEVER);
+        webView.setVerticalScrollBarEnabled(false);
+        webView.setHorizontalScrollBarEnabled(false);
+        webView.setInitialScale(100);
+        webView.setLongClickable(false);
+        webView.setOnLongClickListener(v -> true);
         setContentView(webView);
 
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
         settings.setDatabaseEnabled(true);
+        settings.setTextZoom(100);
         settings.setSupportZoom(false);
         settings.setBuiltInZoomControls(false);
         settings.setDisplayZoomControls(false);
+        settings.setUseWideViewPort(true);
+        settings.setLoadWithOverviewMode(false);
         settings.setAllowFileAccess(true);
         settings.setAllowContentAccess(true);
         settings.setMediaPlaybackRequiresUserGesture(false);
@@ -79,13 +86,13 @@ public class MainActivity extends Activity implements SensorEventListener {
             @Override
             public boolean onShowFileChooser(
                     WebView view,
-                    ValueCallback<Uri[]> filePathCallback,
-                    FileChooserParams fileChooserParams) {
+                    ValueCallback<Uri[]> callback,
+                    FileChooserParams params) {
 
-                if (MainActivity.this.filePathCallback != null) {
-                    MainActivity.this.filePathCallback.onReceiveValue(null);
+                if (filePathCallback != null) {
+                    filePathCallback.onReceiveValue(null);
                 }
-                MainActivity.this.filePathCallback = filePathCallback;
+                filePathCallback = callback;
 
                 Intent contentIntent = new Intent(Intent.ACTION_GET_CONTENT);
                 contentIntent.addCategory(Intent.CATEGORY_OPENABLE);
@@ -99,7 +106,9 @@ public class MainActivity extends Activity implements SensorEventListener {
                             getPackageName() + ".fileprovider",
                             photo);
                     cameraIntent.putExtra(MediaStore.EXTRA_OUTPUT, cameraUri);
-                    cameraIntent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION | Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                    cameraIntent.addFlags(
+                            Intent.FLAG_GRANT_WRITE_URI_PERMISSION |
+                            Intent.FLAG_GRANT_READ_URI_PERMISSION);
                 } catch (IOException e) {
                     cameraIntent = null;
                     cameraUri = null;
@@ -208,7 +217,7 @@ public class MainActivity extends Activity implements SensorEventListener {
 
         @JavascriptInterface
         public String appVersion() {
-            return "1.0.0";
+            return "1.1.0";
         }
     }
 
@@ -281,9 +290,7 @@ public class MainActivity extends Activity implements SensorEventListener {
 
     @Override
     protected void onDestroy() {
-        if (sensorManager != null) {
-            sensorManager.unregisterListener(this);
-        }
+        if (sensorManager != null) sensorManager.unregisterListener(this);
         if (webView != null) {
             webView.stopLoading();
             webView.setWebChromeClient(null);
