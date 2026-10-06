@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0d1410">
+<title>动衡 FitBalance</title>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<div class="app">
+<header>
+  <div><div class="brand">动<b>衡</b></div><div class="sub">运动 · 营养 · 恢复 · 体重管理</div></div>
+  <div class="date" id="dateText"></div>
+</header>
+
+<section id="home" class="page on">
+  <div class="hero">
+    <div class="hero-top">
+      <div>
+        <h1>今日能量平衡</h1>
+        <p id="heroHint">记录摄入与运动，关注长期趋势，不追求单日“完美数字”。</p>
+      </div>
+      <div class="big-balance"><strong id="balanceKcal">0</strong><small>净摄入 kcal</small></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="grid3">
+      <div class="stat"><div class="k">摄入</div><div class="v"><span id="homeIntake">0</span><span class="u"> kcal</span></div></div>
+      <div class="stat"><div class="k">活动消耗</div><div class="v"><span id="homeBurn">0</span><span class="u"> kcal</span></div></div>
+      <div class="stat"><div class="k">步数</div><div class="v"><span id="homeSteps">0</span><span class="u"> 步</span></div></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><h2>今日宏量营养</h2><span id="macroGoalLabel">基于当前资料估算</span></div>
+    <div class="grid2">
+      <div class="macro"><div class="macro-head"><span>蛋白质</span><span><strong id="proteinNow">0</strong> / <span id="proteinGoal">0</span> g</span></div><div class="progress"><div class="bar" id="proteinBar"></div></div></div>
+      <div class="macro"><div class="macro-head"><span>碳水</span><span><strong id="carbNow">0</strong> / <span id="carbGoal">0</span> g</span></div><div class="progress"><div class="bar" id="carbBar"></div></div></div>
+    </div>
+  </div>
+
+  <div class="section" id="fastingHomeWrap">
+    <div class="section-title"><h2>16:8 饮食窗口</h2><span>可在“我的”关闭</span></div>
+    <div class="card fasting">
+      <div><div class="status" id="fastStatus">未开启</div><div class="time" id="fastWindow"></div></div>
+      <div class="countdown" id="fastCountdown">--:--</div>
+    </div>
+    <div id="fastWarning"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><h2>健康模式提醒</h2><span>仅作教育提示</span></div>
+    <div id="conditionAlerts"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><h2>身体趋势</h2><span id="bmiLabel">BMI --</span></div>
+    <div class="card">
+      <div class="grid3">
+        <div class="stat"><div class="k">体重</div><div class="v"><span id="homeWeight">--</span><span class="u"> kg</span></div></div>
+        <div class="stat"><div class="k">估算 TDEE</div><div class="v"><span id="homeTdee">--</span><span class="u"> kcal</span></div></div>
+        <div class="stat"><div class="k">目标热量</div><div class="v"><span id="homeCalGoal">--</span><span class="u"> kcal</span></div></div>
+      </div>
+      <div class="chart" id="weightChart"></div>
+    </div>
+  </div>
+</section>
+
+<section id="nutrition" class="page">
+  <div class="section">
+    <div class="section-title"><h2>营养摄入</h2><span id="nutritionSummary">今日 0 kcal</span></div>
+    <div class="card">
+      <div class="quick-foods" id="quickFoods"></div>
+      <div class="field-grid">
+        <div class="field"><label>食物</label><select id="foodSelect"></select></div>
+        <div class="field"><label>重量（克）</label><input id="foodGram" type="number" inputmode="decimal" value="100" min="1"></div>
+      </div>
+      <div class="between" style="margin-top:12px">
+        <div class="note" id="foodEstimate">选择食物后显示估算营养</div>
+        <button class="btn" id="addFoodBtn">记入今日</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><h2>拍照估算</h2><span>本地隐私模式</span></div>
+    <div class="card">
+      <div class="photo-box">
+        <img id="mealPhoto" alt="食物照片">
+        <div class="photo-placeholder" id="photoPlaceholder"><b>📷 拍照或选择食物图片</b>照片仅保存在当前设备，不自动上传。</div>
+        <input class="photo-input" id="photoInput" type="file" accept="image/*" capture="environment">
+      </div>
+      <div class="alert" style="margin-top:12px">当前独立版采用“拍照记录 + 选择/校正食物和份量 + 自动计算营养”的方式。真正的图像 AI 自动识别需要安全云端模型；为了不把 API 密钥写进 APK，本版不会伪装成自动识别。</div>
+      <div class="field-grid">
+        <div class="field"><label>照片中的食物</label><select id="photoFoodSelect"></select></div>
+        <div class="field"><label>估算重量（克）</label><input id="photoFoodGram" type="number" value="100" min="1"></div>
+      </div>
+      <div class="between" style="margin-top:12px">
+        <div class="note" id="photoEstimate">选择食物和份量</div>
+        <button class="btn secondary" id="addPhotoFoodBtn">加入餐盘</button>
+      </div>
+      <div class="dish-components" id="dishComponents"></div>
+      <div class="between" style="margin-top:12px"><div class="note" id="dishTotal"></div><button class="btn" id="saveDishBtn">保存这餐</button></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><h2>今日饮食记录</h2><span>可删除误记</span></div>
+    <div class="card list" id="foodLog"></div>
+  </div>
+</section>
+
+<section id="activity" class="page">
+  <div class="section">
+    <div class="section-title"><h2>步数计数器</h2><span id="stepSource">读取手机传感器</span></div>
+    <div class="card">
+      <div class="steps-ring" id="stepsRing"><div class="inside"><strong id="stepsValue">0</strong><small>今日步数</small></div></div>
+      <div class="grid2" style="margin-top:14px">
+        <div class="stat"><div class="k">步行估算消耗</div><div class="v"><span id="stepKcal">0</span><span class="u"> kcal</span></div></div>
+        <div class="stat"><div class="k">步数目标</div><div class="v"><span id="stepGoalText">8000</span><span class="u"> 步</span></div></div>
+      </div>
+      <div class="field-grid">
+        <div class="field"><label>手动步数（无传感器时）</label><input id="manualSteps" type="number" inputmode="numeric" min="0"></div>
+        <div class="field" style="display:flex;align-items:end"><button class="btn secondary" id="saveManualStepsBtn" style="width:100%">保存/刷新步数</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><h2>记录运动</h2><span>按 MET 粗略估算消耗</span></div>
+    <div class="card">
+      <div class="exercise-type" id="exerciseTypes"></div>
+      <div class="field-grid">
+        <div class="field"><label>时长（分钟）</label><input id="exerciseMin" type="number" value="30" min="1"></div>
+        <div class="field"><label>备注</label><input id="exerciseNote" placeholder="例如：5km、腿部训练"></div>
+      </div>
+      <div class="between" style="margin-top:12px"><div class="note" id="exerciseEstimate">约 0 kcal</div><button class="btn" id="addExerciseBtn">记录运动</button></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><h2>今日运动记录</h2><span id="activityKcalLabel">0 kcal</span></div>
+    <div class="card list" id="exerciseLog"></div>
+  </div>
+
+  <div class="section">
+    <div class="card">
+      <div class="note"><b style="color:#e8f0ea">成人一般活动参考：</b>WHO 建议每周 150–300 分钟中等强度有氧，或 75–150 分钟高强度有氧，并在每周至少 2 天进行主要肌群力量训练。慢性病患者应根据自身情况调整。</div>
+    </div>
+  </div>
+</section>
+
+<section id="recovery" class="page">
+  <div class="section">
+    <div class="section-title"><h2>肌肉恢复</h2><span>训练后恢复状态</span></div>
+    <div class="alert">恢复提示依据“距离上次训练时间 + 主观酸痛程度”做粗略分级，不代表组织已经完全恢复。高强度训练、疼痛、肿胀或功能受限时要更谨慎。</div>
+    <div class="muscle-grid" id="muscleGrid" style="margin-top:10px"></div>
+  </div>
+</section>
+
+<section id="profile" class="page">
+  <div class="section">
+    <div class="section-title"><h2>身体资料</h2><span>仅保存在本机</span></div>
+    <div class="card">
+      <div class="field-grid">
+        <div class="field"><label>性别</label><select id="sex"><option value="male">男</option><option value="female">女</option></select></div>
+        <div class="field"><label>年龄</label><input id="age" type="number" min="14" max="100"></div>
+        <div class="field"><label>身高（cm）</label><input id="height" type="number" min="100" max="230"></div>
+        <div class="field"><label>体重（kg）</label><input id="weight" type="number" step="0.1" min="30" max="300"></div>
+        <div class="field"><label>目标</label><select id="goal"><option value="lose">减脂</option><option value="maintain">维持</option><option value="gain">增肌</option></select></div>
+        <div class="field"><label>日常活动</label><select id="activityLevel"><option value="1.2">久坐</option><option value="1.375">轻活动</option><option value="1.55">中等活动</option><option value="1.725">高活动</option></select></div>
+        <div class="field"><label>步数目标</label><input id="stepGoal" type="number" min="1000" step="500"></div>
+        <div class="field"><label>热量目标（可覆盖自动值）</label><input id="manualCalGoal" type="number" min="800" placeholder="留空=自动"></div>
+      </div>
+      <button class="btn" id="saveProfileBtn" style="width:100%;margin-top:14px">保存身体资料</button>
+      <div class="note" id="profileCalc" style="margin-top:12px"></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><h2>健康模式</h2><span>可同时选择</span></div>
+    <div class="card">
+      <div class="switch-row"><div><b>糖尿病模式</b><small>加强碳水分布、低血糖与禁食提醒</small></div><div class="switch" id="diabetesSwitch"><i></i></div></div>
+      <div class="switch-row"><div><b>痛风模式</b><small>加强高嘌呤、酒精、高果糖与脱水提醒</small></div><div class="switch" id="goutSwitch"><i></i></div></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><h2>16:8 饮食</h2><span>可选</span></div>
+    <div class="card">
+      <div class="switch-row"><div><b>开启 16:8</b><small>默认 8 小时进食窗口 + 16 小时禁食</small></div><div class="switch" id="fastingSwitch"><i></i></div></div>
+      <div class="field-grid">
+        <div class="field"><label>进食开始时间</label><input id="eatStart" type="time" value="12:00"></div>
+        <div class="field"><label>进食时长</label><select id="eatHours"><option value="8">8 小时（16:8）</option><option value="10">10 小时（14:10）</option><option value="12">12 小时（12:12）</option></select></div>
+      </div>
+      <button class="btn secondary" id="saveFastingBtn" style="width:100%;margin-top:12px">保存饮食窗口</button>
+      <div class="alert warn" style="margin-top:12px">若有糖尿病并使用胰岛素或可能引起低血糖的降糖药，开始间歇性禁食前应先和医生确认；痛风人群也应避免脱水和快速减重。孕期、未成年人、进食障碍史或某些慢性疾病不适合自行尝试禁食。</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><h2>体重记录</h2><span>本地趋势</span></div>
+    <div class="card">
+      <div class="field-grid">
+        <div class="field"><label>日期</label><input id="weightDate" type="date"></div>
+        <div class="field"><label>体重（kg）</label><input id="weightEntry" type="number" step="0.1"></div>
+      </div>
+      <button class="btn secondary" id="addWeightBtn" style="width:100%;margin-top:12px">添加体重记录</button>
+      <div class="chart" id="profileWeightChart"></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="card">
+      <div class="note">营养、热量消耗、步数与照片餐盘均为估算值。糖尿病没有一个适合所有人的固定碳水比例；饮食计划应根据药物、血糖监测、体重目标和个人偏好个体化。痛风管理除饮食外通常还涉及长期尿酸管理，不能用本应用替代医疗方案。</div>
+      <div class="ref">参考框架：WHO 身体活动指南；American Diabetes Association Standards of Care 2026 的个体化营养原则；American College of Rheumatology 2020 痛风指南的一般生活方式建议。</div>
+    </div>
+  </div>
+</section>
+</div>
+
+<nav><div class="nav-inner">
+  <div class="nav-btn on" data-page="home"><span class="ico">◉</span>首页</div>
+  <div class="nav-btn" data-page="nutrition"><span class="ico">🥗</span>饮食</div>
+  <div class="nav-btn" data-page="activity"><span class="ico">🏃</span>运动</div>
+  <div class="nav-btn" data-page="recovery"><span class="ico">💪</span>恢复</div>
+  <div class="nav-btn" data-page="profile"><span class="ico">⚙️</span>我的</div>
+</div></nav>
+
+<div class="toast" id="toast"></div>
+<script src="app.js"></script>
+</body>
+</html>
