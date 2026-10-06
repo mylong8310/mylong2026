@@ -134,6 +134,13 @@ Use `permissions: contents: write` only for workflows that publish releases.
 - diabetes fasting mode must warn users on insulin or hypoglycemia-causing medicines
 - gout mode emphasizes hydration and avoiding crash weight loss
 - high-risk cardiovascular history (hypertension, coronary disease, prior myocardial infarction, prior stroke) must trigger more conservative exercise and symptom warnings
+- health apps with cardiovascular/high-risk modes should support optional local emergency contacts and a clearly separated emergency-services action
+- for mainland-China builds, the emergency medical shortcut may use 120; label the region explicitly
+- use the platform system phone flow instead of trying to silently bypass OS emergency-call protections
+- Android should prefer ACTION_DIAL for emergency/ICE shortcuts unless there is a compelling, reviewed reason to request CALL_PHONE
+- iOS should use the system tel: flow and accept that iOS may require confirmation
+- emergency symptom cards must prioritize calling emergency services over contacting family when acute coronary syndrome or stroke warning signs are present
+- keep emergency contacts local by default and never upload them merely for analytics
 - preserve local privacy by default; photo upload requires explicit user action
 
 ## Completion checklist
