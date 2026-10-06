@@ -28,8 +28,10 @@
     exerciseLogs: [],
     weightLogs: [],
     manualSteps: {},
+    stepHistory: {},
     recovery: {},
-    behaviorLogs: []
+    behaviorLogs: [],
+    customActivities: []
   };
 
   let state;
@@ -47,8 +49,10 @@
     exerciseLogs: Array.isArray(state.exerciseLogs) ? state.exerciseLogs : [],
     weightLogs: Array.isArray(state.weightLogs) ? state.weightLogs : [],
     manualSteps: state.manualSteps || {},
+    stepHistory: state.stepHistory || {},
     recovery: state.recovery || {},
-    behaviorLogs: Array.isArray(state.behaviorLogs) ? state.behaviorLogs : []
+    behaviorLogs: Array.isArray(state.behaviorLogs) ? state.behaviorLogs : [],
+    customActivities: Array.isArray(state.customActivities) ? state.customActivities : []
   };
   if (!Array.isArray(state.profile.emergencyContacts)) {
     state.profile.emergencyContacts = defaults.profile.emergencyContacts.map(x => ({...x}));
@@ -78,13 +82,18 @@
     {id:'shrimp',name:'虾',icon:'🦐',kcal:99,p:24.0,c:0.2,f:0.3,purine:'high'}
   ];
 
-  const exerciseTypes = [
-    {id:'walk',label:'走路',icon:'🚶',met:3.5},
-    {id:'run',label:'跑步',icon:'🏃',met:8.3},
-    {id:'strength',label:'力量',icon:'🏋️',met:5.0},
-    {id:'cycle',label:'骑行',icon:'🚴',met:6.8}
+  const baseExerciseTypes = [
+    {id:'walk',label:'走路',icon:'🚶',met:3.5,category:'exercise'},
+    {id:'run',label:'跑步',icon:'🏃',met:8.3,category:'exercise'},
+    {id:'strength',label:'力量',icon:'🏋️',met:5.0,category:'exercise'},
+    {id:'cycle',label:'骑行',icon:'🚴',met:6.8,category:'exercise'},
+    {id:'meditation',label:'冥想',icon:'🧘',met:1.3,category:'meditation'},
+    {id:'stretch',label:'拉伸',icon:'🤸',met:2.3,category:'mobility'}
   ];
+  const allExerciseTypes = () => baseExerciseTypes.concat(state.customActivities || []);
   let selectedExercise = 'walk';
+  let selectedMuscle = 'legs';
+  let reportDays = 7;
   let photoDish = [];
   let zhuangziStatus = null;
   let zhuangziViewDay = 1;
@@ -604,24 +613,57 @@
     el('fastWarning').innerHTML = warning;
   }
 
-  function foodOptionHtml() {
-    return foods.map(f => '<option value="' + f.id + '">' + f.icon + ' ' + f.name + '</option>').join('');
+  function evaluateFoodRisk(foodId) {
+    try {
+      if (window.FitBridge && typeof FitBridge.evaluateFoodRiskJson === 'function') {
+        return parseBridgeJson(
+          FitBridge.evaluateFoodRiskJson(foodId, JSON.stringify(state.profile)),
+          {status:'neutral',items:[],has_rules:false}
+        );
+      }
+    } catch (e) {}
+    const f = foods.find(x => x.id === foodId);
+    if (state.profile.gout && f) {
+      if (f.purine === 'high') return {status:'red',items:[{disease:'gout',status:'red',reason:'高嘌呤食物，痛风模式下建议限制。'}],has_rules:true};
+      if (f.purine === 'moderate') return {status:'yellow',items:[{disease:'gout',status:'yellow',reason:'中等嘌呤，注意份量。'}],has_rules:true};
+      return {status:'green',items:[{disease:'gout',status:'green',reason:'低嘌呤选择。'}],has_rules:true};
+    }
+    return {status:'neutral',items:[],has_rules:false};
   }
 
-  function renderFoodControls() {
-    el('foodSelect').innerHTML = foodOptionHtml();
-    el('photoFoodSelect').innerHTML = foodOptionHtml();
+  function riskIcon(status) {
+    return status === 'red' ? '🔴' : status === 'yellow' ? '🟡' : status === 'green' ? '🟢' : '⚪';
+  }
 
-    const quick = foods.slice(0, 8);
-    el('quickFoods').innerHTML = quick.map(f =>
-      '<button class="quick" data-food="' + f.id + '">' + f.icon + ' ' + f.name + '</button>'
-    ).join('');
+  function foodOptionHtml(selectedId) {
+    return foods.map(f => {
+      const risk = evaluateFoodRisk(f.id);
+      return '<option value="' + f.id + '"' + (f.id === selectedId ? ' selected' : '') + '>' +
+        riskIcon(risk.status) + ' ' + f.icon + ' ' + f.name + '</option>';
+    }).join('');
+  }
+
+  function renderQuickFoods() {
+    const quick = foods.slice(0, 10);
+    el('quickFoods').innerHTML = quick.map(f => {
+      const risk = evaluateFoodRisk(f.id);
+      return '<button class="quick risk-' + risk.status + '" data-food="' + f.id + '">' +
+        riskIcon(risk.status) + ' ' + f.icon + ' ' + f.name + '</button>';
+    }).join('');
     el('quickFoods').querySelectorAll('[data-food]').forEach(btn => {
       btn.onclick = () => {
         el('foodSelect').value = btn.dataset.food;
         renderFoodEstimate();
       };
     });
+  }
+
+  function renderFoodControls() {
+    const selected = el('foodSelect') ? el('foodSelect').value : foods[0].id;
+    const photoSelected = el('photoFoodSelect') ? el('photoFoodSelect').value : foods[0].id;
+    el('foodSelect').innerHTML = foodOptionHtml(selected);
+    el('photoFoodSelect').innerHTML = foodOptionHtml(photoSelected);
+    renderQuickFoods();
 
     el('foodSelect').onchange = renderFoodEstimate;
     el('foodGram').oninput = renderFoodEstimate;
@@ -635,22 +677,36 @@
     return foods.find(f => f.id === id) || foods[0];
   }
 
-  function conditionFoodWarning(food, calc) {
-    const p = state.profile;
-    const notes = [];
-    if (p.diabetes && calc.c >= 30) notes.push('本份碳水约 ' + round(calc.c,1) + 'g，注意与当餐计划、血糖监测和用药配合');
-    if (p.gout && food.purine === 'high') notes.push('痛风模式：该食物属于较高嘌呤选择，建议控制频率和份量');
-    if (p.gout && food.purine === 'moderate') notes.push('痛风模式：适量摄入，注意全天总量与补水');
-    return notes.join('；');
+  function renderFoodRiskPanel(food) {
+    const risk = evaluateFoodRisk(food.id);
+    const panel = el('foodRiskPanel');
+    if (!panel) return risk;
+    panel.className = 'food-risk-panel ' + (risk.status || 'neutral');
+    el('foodRiskTitle').textContent =
+      risk.status === 'red' ? '红色：当前健康模式下建议限制' :
+      risk.status === 'yellow' ? '黄色：注意份量、频率或烹调方式' :
+      risk.status === 'green' ? '绿色：当前健康模式下相对友好' :
+      '当前未启用疾病联动';
+    const reasons = (risk.items || []).map(x => {
+      const d = x.disease === 'gout' ? '痛风' :
+        x.disease === 'diabetes' ? '糖尿病' :
+        x.disease === 'hypertension' ? '高血压' : '心血管';
+      return d + '：' + x.reason + (x.evidence_id ? ' [' + x.evidence_id + ']' : '');
+    });
+    el('foodRiskReason').textContent = reasons.length
+      ? reasons.join('；')
+      : '在“我的 → 健康模式”开启疾病后，食物会按红 / 黄 / 绿联动。';
+    return risk;
   }
 
   function renderFoodEstimate() {
     const food = getFoodById(el('foodSelect').value);
     const grams = Number(el('foodGram').value || 0);
     const n = calcFood(food, grams);
+    const risk = renderFoodRiskPanel(food);
     let text = round(n.kcal) + ' kcal · 蛋白 ' + round(n.p,1) + 'g · 碳水 ' + round(n.c,1) + 'g · 脂肪 ' + round(n.f,1) + 'g';
-    const w = conditionFoodWarning(food,n);
-    if (w) text += ' ｜ ' + w;
+    if (state.profile.diabetes && n.c >= 30) text += ' ｜ 本份碳水约 ' + round(n.c,1) + 'g';
+    if (risk.status && risk.status !== 'neutral') text += ' ｜ ' + riskIcon(risk.status) + ' 疾病联动';
     el('foodEstimate').textContent = text;
   }
 
@@ -663,9 +719,11 @@
 
   function addFoodLog(food, grams, source) {
     const n = calcFood(food, grams);
+    const risk = evaluateFoodRisk(food.id);
     state.foodLogs.push({
       id: uid(), date: today(), name: food.name, foodId: food.id, grams: Number(grams),
-      kcal:n.kcal,p:n.p,c:n.c,f:n.f,source:source || '手动'
+      kcal:n.kcal,p:n.p,c:n.c,f:n.f,source:source || '手动',
+      riskStatus:risk.status || 'neutral'
     });
     save();
     renderAll();
@@ -736,12 +794,17 @@
     el('stepsRing').style.setProperty('--p', clamp(a.steps / goal * 100,0,100) + '%');
     el('manualSteps').value = state.manualSteps[today()] || '';
     el('activityKcalLabel').textContent = round(a.total) + ' kcal';
+    state.stepHistory[today()] = a.steps;
+    save();
   }
 
   function renderExerciseTypes() {
+    const types = allExerciseTypes();
+    if (!types.find(x => x.id === selectedExercise)) selectedExercise = types[0].id;
     const box = el('exerciseTypes');
-    box.innerHTML = exerciseTypes.map(x =>
-      '<button data-type="' + x.id + '" class="' + (x.id === selectedExercise ? 'on' : '') + '">' + x.icon + '<br>' + x.label + '</button>'
+    box.innerHTML = types.map(x =>
+      '<button data-type="' + x.id + '" class="' + (x.id === selectedExercise ? 'on' : '') + '">' +
+      (x.icon || '✨') + '<br>' + x.label + '</button>'
     ).join('');
     box.querySelectorAll('[data-type]').forEach(btn => {
       btn.onclick = () => {
@@ -754,27 +817,34 @@
   }
 
   function exerciseCalc(type, min) {
-    const def = exerciseTypes.find(x => x.id === type) || exerciseTypes[0];
+    const def = allExerciseTypes().find(x => x.id === type) || allExerciseTypes()[0];
     const weight = profileMetrics().w;
-    return def.met * weight * (Number(min || 0) / 60);
+    return Number(def.met || 1.3) * weight * (Number(min || 0) / 60);
   }
 
   function renderExerciseEstimate() {
+    const def = allExerciseTypes().find(x => x.id === selectedExercise) || allExerciseTypes()[0];
     const kcal = exerciseCalc(selectedExercise, el('exerciseMin').value);
-    el('exerciseEstimate').textContent = '约 ' + round(kcal) + ' kcal（估算）';
+    const suffix = def.category === 'meditation'
+      ? ' · 冥想热量仅作低强度能量估算'
+      : ' · MET 粗略估算';
+    el('exerciseEstimate').textContent = '约 ' + round(kcal) + ' kcal' + suffix;
   }
 
   function renderExerciseLog() {
     const logs = todayExercise().slice().reverse();
     const box = el('exerciseLog');
     if (!logs.length) {
-      box.innerHTML = '<div class="empty">今天还没有运动记录</div>';
+      box.innerHTML = '<div class="empty">今天还没有运动/冥想记录</div>';
       return;
     }
     box.innerHTML = logs.map(x => {
-      const d = exerciseTypes.find(t => t.id === x.type) || exerciseTypes[0];
-      return '<div class="item"><div class="item-icon">' + d.icon + '</div><div class="item-main"><div class="item-title">' +
-        d.label + ' · ' + round(x.min) + ' 分钟</div><div class="item-sub">' + (x.note || '无备注') +
+      const d = allExerciseTypes().find(t => t.id === x.type) || {
+        label:x.label || '自定义项目', icon:x.icon || '✨', category:x.category || 'exercise'
+      };
+      return '<div class="item"><div class="item-icon">' + (x.icon || d.icon) + '</div><div class="item-main"><div class="item-title">' +
+        (x.label || d.label) + ' · ' + round(x.min) + ' 分钟</div><div class="item-sub">' +
+        (x.note || (d.category === 'meditation' ? '冥想/呼吸' : '无备注')) +
         '</div></div><div class="item-side"><b>' + round(x.kcal) + '</b><span class="note">kcal</span><button class="del" data-exdel="' + x.id + '">×</button></div></div>';
     }).join('');
     box.querySelectorAll('[data-exdel]').forEach(btn => {
@@ -785,13 +855,83 @@
     });
   }
 
+  function recoveryModel(item, atHours) {
+    if (!item || !item.lastTs) return {readiness:100,tau:18,hours:999};
+    const elapsed = atHours == null
+      ? Math.max(0,(Date.now() - Number(item.lastTs)) / 3600000)
+      : Math.max(0,Number(atHours));
+    const rpe = clamp(Number(item.rpe || 7),1,10);
+    const duration = clamp(Number(item.duration || 45),5,240);
+    const soreness = clamp(Number(item.soreness || 0),0,5);
+    const sleep = clamp(Number(item.sleep || 7),0,14);
+    const loadFactor = clamp((rpe / 7) * Math.sqrt(duration / 45), 0.6, 1.9);
+    const sleepFactor = sleep < 6 ? 1.30 : sleep < 7 ? 1.14 : sleep >= 8 ? 0.92 : 1.0;
+    const sorenessFactor = 1 + soreness * 0.11;
+    const tau = 19 * loadFactor * sleepFactor * sorenessFactor;
+    let readiness = 100 * (1 - Math.exp(-elapsed / tau));
+    if (atHours == null && soreness >= 4 && elapsed < 48) readiness = Math.min(readiness,55);
+    if (atHours == null && soreness >= 3 && elapsed < 24) readiness = Math.min(readiness,45);
+    return {readiness:clamp(readiness,0,100),tau,hours:elapsed};
+  }
+
   function recoveryStatus(item) {
-    if (!item || !item.lastTs) return {cls:'good',text:'可安排训练',meta:'暂无近期记录'};
-    const h = Math.max(0,(Date.now() - Number(item.lastTs)) / 3600000);
+    const m = recoveryModel(item);
+    if (!item || !item.lastTs) return {cls:'good',text:'可安排训练',meta:'暂无近期记录',readiness:100};
     const s = Number(item.soreness || 0);
-    if (s >= 4 || h < 24) return {cls:'bad',text:'优先恢复',meta:round(h) + ' 小时前训练 · 酸痛 ' + s + '/5'};
-    if (s >= 2 || h < 48) return {cls:'mid',text:'谨慎安排',meta:round(h) + ' 小时前训练 · 酸痛 ' + s + '/5'};
-    return {cls:'good',text:'恢复较充分',meta:round(h) + ' 小时前训练 · 酸痛 ' + s + '/5'};
+    if (m.readiness < 45 || s >= 4) return {cls:'bad',text:'优先恢复',meta:round(m.hours) + ' 小时前训练 · 酸痛 ' + s + '/5',readiness:m.readiness};
+    if (m.readiness < 75 || s >= 2) return {cls:'mid',text:'恢复中',meta:round(m.hours) + ' 小时前训练 · 酸痛 ' + s + '/5',readiness:m.readiness};
+    return {cls:'good',text:'就绪度较高',meta:round(m.hours) + ' 小时前训练 · 酸痛 ' + s + '/5',readiness:m.readiness};
+  }
+
+  function recoveryCurveSvg(item) {
+    const w = 340, h = 125, padX = 26, padY = 14;
+    const points = [];
+    for (let hr=0; hr<=96; hr+=8) {
+      const v = recoveryModel(item,hr).readiness;
+      const x = padX + hr/96*(w-padX-8);
+      const y = h-padY - v/100*(h-padY*2);
+      points.push([x,y,hr,v]);
+    }
+    const poly = points.map(p => p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ');
+    const nowH = item && item.lastTs ? Math.min(96,Math.max(0,(Date.now()-Number(item.lastTs))/3600000)) : 96;
+    const nowV = recoveryModel(item,nowH).readiness;
+    const nx = padX + nowH/96*(w-padX-8);
+    const ny = h-padY - nowV/100*(h-padY*2);
+    return '<svg viewBox="0 0 '+w+' '+h+'">' +
+      '<line x1="'+padX+'" y1="'+(h-padY)+'" x2="'+(w-8)+'" y2="'+(h-padY)+'" stroke="#314238"/>' +
+      '<line x1="'+padX+'" y1="'+padY+'" x2="'+padX+'" y2="'+(h-padY)+'" stroke="#314238"/>' +
+      '<polyline points="'+poly+'" fill="none" stroke="#9ee36d" stroke-width="3"/>' +
+      '<circle cx="'+nx+'" cy="'+ny+'" r="5" fill="#f2cb6b"/>' +
+      '<text x="2" y="18" fill="#7f8d84" font-size="9">100%</text>' +
+      '<text x="'+padX+'" y="'+(h-2)+'" fill="#7f8d84" font-size="9">0h</text>' +
+      '<text x="'+(w/2-10)+'" y="'+(h-2)+'" fill="#7f8d84" font-size="9">48h</text>' +
+      '<text x="'+(w-30)+'" y="'+(h-2)+'" fill="#7f8d84" font-size="9">96h</text>' +
+      '</svg>';
+  }
+
+  function renderRecoveryAdvanced() {
+    const def = muscleDefs.find(x => x[0] === selectedMuscle) || muscleDefs[2];
+    const item = state.recovery[selectedMuscle] || {};
+    const status = recoveryStatus(item);
+    if (el('recoveryMuscleName')) el('recoveryMuscleName').textContent = def[1];
+    if (el('recoveryReadiness')) el('recoveryReadiness').textContent = round(status.readiness);
+    if (el('recoveryCurve')) el('recoveryCurve').innerHTML = recoveryCurveSvg(item);
+    if (el('recoveryRpe')) el('recoveryRpe').value = item.rpe || 7;
+    if (el('recoverySoreness')) el('recoverySoreness').value = item.soreness == null ? 2 : item.soreness;
+    if (el('recoveryDuration')) el('recoveryDuration').value = item.duration || 45;
+    if (el('recoverySleep')) el('recoverySleep').value = item.sleep || 7;
+    if (el('recoveryEvidenceNote')) {
+      el('recoveryEvidenceNote').textContent =
+        '研究提示阻力训练后的肌蛋白合成可升高至约 48 小时，但个体差异很大；延迟性肌肉酸痛常在约 24–72 小时较明显。这里显示的是训练管理“就绪度估算”，不是肌肉损伤检测。';
+    }
+
+    document.querySelectorAll('.muscle-zone').forEach(z => {
+      const id = z.dataset.muscle;
+      const s = recoveryStatus(state.recovery[id] || {});
+      z.classList.remove('state-green','state-yellow','state-red','selected');
+      z.classList.add(s.cls === 'bad' ? 'state-red' : s.cls === 'mid' ? 'state-yellow' : 'state-green');
+      if (id === selectedMuscle) z.classList.add('selected');
+    });
   }
 
   function renderRecovery() {
@@ -802,19 +942,22 @@
       let sore = '';
       for (let i=0;i<=5;i++) sore += '<button data-sore="' + id + ':' + i + '" class="' + (Number(item.soreness||0)===i?'on':'') + '">' + i + '</button>';
       return '<div class="muscle ' + r.cls + '"><div class="between"><div class="name">' + name + '</div><button class="btn ghost" data-trained="' + id + '" style="padding:7px 8px;font-size:10px">今天练了</button></div>' +
-        '<div class="ready">' + r.text + '</div><div class="meta">' + r.meta + '</div><div class="soreness">' + sore + '</div></div>';
+        '<div class="ready">' + r.text + ' · ' + round(r.readiness) + '%</div><div class="meta">' + r.meta + '</div><div class="soreness">' + sore + '</div></div>';
     }).join('');
 
     box.querySelectorAll('[data-trained]').forEach(btn => btn.onclick = () => {
       const id = btn.dataset.trained;
-      state.recovery[id] = {lastTs:Date.now(),soreness:2};
+      state.recovery[id] = {...(state.recovery[id]||{}),lastTs:Date.now(),soreness:2,rpe:7,duration:45,sleep:7};
+      selectedMuscle=id;
       save();renderRecovery();toast('已记录训练');
     });
     box.querySelectorAll('[data-sore]').forEach(btn => btn.onclick = () => {
       const [id,score] = btn.dataset.sore.split(':');
       state.recovery[id] = {...(state.recovery[id]||{}),soreness:Number(score)};
+      selectedMuscle=id;
       save();renderRecovery();
     });
+    renderRecoveryAdvanced();
   }
 
   function renderProfile() {
@@ -884,6 +1027,114 @@
       '<text x="'+(w-70)+'" y="10">'+last.date.slice(5)+'</text></svg>';
   }
 
+  function inLastDays(dateStr, days) {
+    const d = new Date(dateStr + 'T00:00:00');
+    const start = new Date();
+    start.setHours(0,0,0,0);
+    start.setDate(start.getDate() - (days - 1));
+    return d >= start && d <= new Date();
+  }
+
+  function reportAggregate(days) {
+    const food = state.foodLogs.filter(x => inLastDays(x.date,days));
+    const exercise = state.exerciseLogs.filter(x => inLastDays(x.date,days));
+    const behavior = state.behaviorLogs.filter(x => inLastDays(x.date,days));
+    const weights = state.weightLogs.filter(x => inLastDays(x.date,days)).slice().sort((a,b)=>a.date.localeCompare(b.date));
+    const nutrition = sumNutrition(food);
+    const activeDays = new Set();
+    food.forEach(x=>activeDays.add(x.date));
+    exercise.forEach(x=>activeDays.add(x.date));
+    behavior.forEach(x=>activeDays.add(x.date));
+    Object.keys(state.stepHistory||{}).filter(d=>inLastDays(d,days)).forEach(d=>activeDays.add(d));
+    weights.forEach(x=>activeDays.add(x.date));
+
+    let stepSum=0,stepDays=0;
+    Object.entries(state.stepHistory||{}).forEach(([d,v])=>{
+      if(inLastDays(d,days)){stepSum+=Number(v||0);stepDays++;}
+    });
+    const exerciseMin = exercise.reduce((a,x)=>a+Number(x.min||0),0);
+    const exerciseKcal = exercise.reduce((a,x)=>a+Number(x.kcal||0),0);
+    const cigarettes = behavior.reduce((a,x)=>a+Number(x.cigarettes||0),0);
+    const alcohol = behavior.reduce((a,x)=>a+ethanolGrams(x.beerMl,x.beerAbv)+ethanolGrams(x.baijiuMl,x.baijiuAbv),0);
+    const lateHours = behavior.reduce((a,x)=>a+Number(x.lateHours||0),0);
+    const redFoods = food.filter(x => {
+      if (x.riskStatus) return x.riskStatus === 'red';
+      return evaluateFoodRisk(x.foodId).status === 'red';
+    }).length;
+    const meditationMin = exercise.filter(x => {
+      const def=allExerciseTypes().find(t=>t.id===x.type);
+      return (x.category || (def&&def.category)) === 'meditation';
+    }).reduce((a,x)=>a+Number(x.min||0),0);
+    const weightDelta = weights.length >= 2 ? Number(weights[weights.length-1].weight)-Number(weights[0].weight) : null;
+
+    const daily = [];
+    for(let i=days-1;i>=0;i--){
+      const d=dateOffset(-i);
+      const f=sumNutrition(state.foodLogs.filter(x=>x.date===d));
+      const ex=state.exerciseLogs.filter(x=>x.date===d).reduce((a,x)=>a+Number(x.kcal||0),0);
+      const st=Number((state.stepHistory||{})[d]||0);
+      daily.push({date:d,intake:f.kcal,burn:ex+stepCalories(st)});
+    }
+
+    return {
+      days,food,exercise,behavior,weights,nutrition,exerciseMin,exerciseKcal,cigarettes,alcohol,lateHours,
+      redFoods,meditationMin,weightDelta,avgSteps:stepDays?stepSum/stepDays:0,
+      completeness:Math.round(activeDays.size/days*100),daily
+    };
+  }
+
+  function reportTrendSvg(daily) {
+    const w=340,h=105,p=12;
+    const vals=daily.flatMap(x=>[x.intake,x.burn]);
+    const max=Math.max(1,...vals);
+    const pts=(key)=>daily.map((x,i)=>{
+      const px=p+(daily.length===1?0:i*(w-2*p)/(daily.length-1));
+      const py=h-p-(Number(x[key]||0)/max)*(h-2*p);
+      return px.toFixed(1)+','+py.toFixed(1);
+    }).join(' ');
+    return '<svg viewBox="0 0 '+w+' '+h+'">' +
+      '<polyline points="'+pts('intake')+'" fill="none" stroke="#9ee36d" stroke-width="2.5"/>' +
+      '<polyline points="'+pts('burn')+'" fill="none" stroke="#77bdfb" stroke-width="2.5"/>' +
+      '<text x="12" y="12" fill="#9ee36d" font-size="9">摄入</text><text x="48" y="12" fill="#77bdfb" font-size="9">活动消耗</text>' +
+      '</svg>';
+  }
+
+  function renderReport() {
+    if (!el('reportMetrics')) return;
+    const a=reportAggregate(reportDays);
+    el('reportRange').textContent = '最近 ' + reportDays + ' 天';
+    el('reportCompleteness').textContent = a.completeness;
+    el('reportHeadline').textContent = a.completeness < 35
+      ? '数据还比较少，先持续记录趋势'
+      : (reportDays===7 ? '本周变化概览' : '本月变化概览');
+
+    const metrics=[
+      [round(a.avgSteps),'平均步数'],
+      [round(a.exerciseMin),'运动分钟'],
+      [round(a.meditationMin),'冥想分钟'],
+      [round(a.nutrition.kcal/a.days),'日均摄入 kcal'],
+      [round(a.nutrition.p/a.days,1)+'g','日均蛋白'],
+      [round(a.nutrition.c/a.days,1)+'g','日均碳水'],
+      [round(a.cigarettes),'香烟总支数'],
+      [round(a.alcohol,1)+'g','纯酒精'],
+      [round(a.lateHours,1)+'h','熬夜时长'],
+      [a.redFoods,'红色风险食物']
+    ];
+    if(a.weightDelta!=null) metrics.push([(a.weightDelta>0?'+':'')+round(a.weightDelta,1)+'kg','体重变化']);
+    el('reportMetrics').innerHTML=metrics.map(x=>'<div class="report-metric"><b>'+x[0]+'</b><span>'+x[1]+'</span></div>').join('');
+    el('reportTrendChart').innerHTML=reportTrendSvg(a.daily);
+
+    const insights=[];
+    if(a.avgSteps>0) insights.push({c:a.avgSteps>=8000?'good':'warn',t:'平均步数 '+round(a.avgSteps)+'；重点看长期趋势，不强求每天同一数字。'});
+    if(a.cigarettes>0) insights.push({c:'bad',t:'本周期记录吸烟 '+round(a.cigarettes)+' 支。吸烟不存在安全支数，减少暴露本身就是改进。'});
+    if(a.alcohol>0) insights.push({c:'warn',t:'本周期纯酒精约 '+round(a.alcohol,1)+'g；不把非零饮酒解释成“安全”。'});
+    if(a.redFoods>0) insights.push({c:'warn',t:'疾病联动红色食物记录 '+a.redFoods+' 次，可从“频率和份量”两个维度逐步减少。'});
+    if(a.meditationMin>0) insights.push({c:'good',t:'冥想/呼吸累计 '+round(a.meditationMin)+' 分钟，作为压力管理记录，不与运动热量等价。'});
+    if(a.weightDelta!=null) insights.push({c:'good',t:'体重从本周期首条到末条变化 '+(a.weightDelta>0?'+':'')+round(a.weightDelta,1)+'kg；单周期变化应结合目标和更长时间观察。'});
+    if(!insights.length) insights.push({c:'warn',t:'继续记录饮食、运动、睡眠与体重，报告会随着数据积累变得更有意义。'});
+    el('reportInsights').innerHTML=insights.map(x=>'<div class="report-insight '+x.c+'">'+x.t+'</div>').join('');
+  }
+
   function renderAll() {
     renderHome();
     renderFoodLog();
@@ -894,6 +1145,8 @@
     renderEmergency();
     renderBehavior();
     renderZhuangzi();
+    renderFoodControls();
+    renderReport();
   }
 
   function bind() {
@@ -929,7 +1182,8 @@
       photoDish.forEach(x => {
         state.foodLogs.push({
           id:uid(),date:today(),name:x.name,foodId:x.id,grams:x.grams,
-          kcal:x.kcal,p:x.p,c:x.c,f:x.f,source:'拍照餐盘'
+          kcal:x.kcal,p:x.p,c:x.c,f:x.f,source:'拍照餐盘',
+          riskStatus:evaluateFoodRisk(x.id).status || 'neutral'
         });
       });
       photoDish = [];
@@ -956,12 +1210,72 @@
       const min = Number(el('exerciseMin').value);
       if (!min || min <= 0) return toast('请输入运动时长');
       const kcal = exerciseCalc(selectedExercise,min);
+      const def = allExerciseTypes().find(x=>x.id===selectedExercise) || allExerciseTypes()[0];
       state.exerciseLogs.push({
-        id:uid(),date:today(),type:selectedExercise,min,kcal,note:el('exerciseNote').value.trim()
+        id:uid(),date:today(),type:selectedExercise,min,kcal,note:el('exerciseNote').value.trim(),
+        label:def.label,icon:def.icon,category:def.category,met:def.met
       });
       el('exerciseNote').value = '';
       save();renderAll();toast('运动已记录');
     };
+
+    el('toggleCustomActivityBtn').onclick = () => el('customActivityForm').classList.toggle('on');
+    el('saveCustomActivityBtn').onclick = () => {
+      const name=String(el('customActivityName').value||'').trim();
+      if(!name) return toast('请输入项目名称');
+      const category=el('customActivityCategory').value;
+      const defaultMet=category==='meditation'?1.3:category==='mobility'?2.3:4.0;
+      const met=clamp(Number(el('customActivityMet').value||defaultMet),1,20);
+      const icon=String(el('customActivityIcon').value||'').trim() || (category==='meditation'?'🧘':category==='mobility'?'🤸':'✨');
+      const id='custom_'+uid();
+      state.customActivities.push({id,label:name,icon,met,category,custom:true});
+      selectedExercise=id;
+      save();
+      el('customActivityName').value='';
+      el('customActivityMet').value='';
+      el('customActivityIcon').value='';
+      el('customActivityForm').classList.remove('on');
+      renderExerciseTypes();
+      toast('自定义项目已保存');
+    };
+
+    document.querySelectorAll('.body-side').forEach(btn=>btn.onclick=()=>{
+      document.querySelectorAll('.body-side').forEach(x=>x.classList.toggle('on',x===btn));
+      el('bodyFront').classList.toggle('on',btn.dataset.side==='front');
+      el('bodyBack').classList.toggle('on',btn.dataset.side==='back');
+      renderRecoveryAdvanced();
+    });
+    document.querySelectorAll('.muscle-zone').forEach(z=>z.onclick=()=>{
+      selectedMuscle=z.dataset.muscle;
+      renderRecoveryAdvanced();
+    });
+    el('recordRecoveryTrainingBtn').onclick=()=>{
+      state.recovery[selectedMuscle]={
+        ...(state.recovery[selectedMuscle]||{}),
+        lastTs:Date.now(),
+        rpe:clamp(Number(el('recoveryRpe').value||7),1,10),
+        soreness:clamp(Number(el('recoverySoreness').value||0),0,5),
+        duration:clamp(Number(el('recoveryDuration').value||45),5,240),
+        sleep:clamp(Number(el('recoverySleep').value||7),0,14)
+      };
+      save();renderRecovery();toast('该肌群训练已记录');
+    };
+    el('refreshRecoveryBtn').onclick=()=>{
+      state.recovery[selectedMuscle]={
+        ...(state.recovery[selectedMuscle]||{}),
+        rpe:clamp(Number(el('recoveryRpe').value||7),1,10),
+        soreness:clamp(Number(el('recoverySoreness').value||0),0,5),
+        duration:clamp(Number(el('recoveryDuration').value||45),5,240),
+        sleep:clamp(Number(el('recoverySleep').value||7),0,14)
+      };
+      save();renderRecoveryAdvanced();
+    };
+
+    document.querySelectorAll('.report-tab').forEach(btn=>btn.onclick=()=>{
+      reportDays=Number(btn.dataset.reportDays||7);
+      document.querySelectorAll('.report-tab').forEach(x=>x.classList.toggle('on',x===btn));
+      renderReport();
+    });
 
     el('saveProfileBtn').onclick = () => {
       const p = state.profile;
