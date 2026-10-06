@@ -20,6 +20,7 @@ import android.view.View;
 import android.webkit.JavascriptInterface;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
+import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -81,7 +82,17 @@ public class MainActivity extends Activity implements SensorEventListener {
         settings.setMediaPlaybackRequiresUserGesture(false);
 
         webView.addJavascriptInterface(new FitBridge(), "FitBridge");
-        webView.setWebViewClient(new WebViewClient());
+        webView.setWebViewClient(new WebViewClient() {
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+                Uri uri = request.getUrl();
+                if ("tel".equalsIgnoreCase(uri.getScheme())) {
+                    openDialer(uri.getSchemeSpecificPart());
+                    return true;
+                }
+                return false;
+            }
+        });
         webView.setWebChromeClient(new WebChromeClient() {
             @Override
             public boolean onShowFileChooser(
@@ -138,6 +149,17 @@ public class MainActivity extends Activity implements SensorEventListener {
         }
 
         ensureActivityPermission();
+    }
+
+    private void openDialer(String rawPhone) {
+        if (rawPhone == null) return;
+        String phone = rawPhone.replaceAll("[^0-9+]", "");
+        if (phone.isEmpty()) return;
+        try {
+            Intent intent = new Intent(Intent.ACTION_DIAL, Uri.parse("tel:" + phone));
+            startActivity(intent);
+        } catch (Exception ignored) {
+        }
     }
 
     private File createImageFile() throws IOException {
@@ -216,8 +238,13 @@ public class MainActivity extends Activity implements SensorEventListener {
         }
 
         @JavascriptInterface
+        public void dialNumber(String phone) {
+            runOnUiThread(() -> openDialer(phone));
+        }
+
+        @JavascriptInterface
         public String appVersion() {
-            return "1.1.0";
+            return "1.2.0";
         }
     }
 
