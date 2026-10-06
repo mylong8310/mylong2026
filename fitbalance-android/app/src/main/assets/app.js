@@ -21,7 +21,8 @@
     exerciseLogs: [],
     weightLogs: [],
     manualSteps: {},
-    recovery: {}
+    recovery: {},
+    behaviorLogs: []
   };
 
   let state;
@@ -38,7 +39,8 @@
     exerciseLogs: Array.isArray(state.exerciseLogs) ? state.exerciseLogs : [],
     weightLogs: Array.isArray(state.weightLogs) ? state.weightLogs : [],
     manualSteps: state.manualSteps || {},
-    recovery: state.recovery || {}
+    recovery: state.recovery || {},
+    behaviorLogs: Array.isArray(state.behaviorLogs) ? state.behaviorLogs : []
   };
 
   const foods = [
@@ -126,6 +128,95 @@
 
   function todayExercise() {
     return state.exerciseLogs.filter(x => x.date === today());
+  }
+
+  function todayBehavior() {
+    return state.behaviorLogs.find(x => x.date === today()) || {
+      date: today(), cigarettes: 0, beerMl: 0, beerAbv: 5,
+      baijiuMl: 0, baijiuAbv: 52, lateHours: 0
+    };
+  }
+
+  function ethanolGrams(ml, abv) {
+    return Math.max(0, Number(ml) || 0) * Math.max(0, Number(abv) || 0) / 100 * 0.789;
+  }
+
+  function behaviorLoad(b) {
+    const cigarettes = Math.max(0, Number(b.cigarettes) || 0);
+    const alcohol = ethanolGrams(b.beerMl, b.beerAbv) + ethanolGrams(b.baijiuMl, b.baijiuAbv);
+    const late = Math.max(0, Number(b.lateHours) || 0);
+
+    const smokingPoints = cigarettes > 0 ? Math.min(45, 12 + cigarettes * 1.65) : 0;
+    const alcoholPoints = alcohol > 0 ? Math.min(35, 6 + alcohol * 0.75) : 0;
+    const latePoints = late > 0 ? Math.min(30, 5 + late * 8) : 0;
+    const score = Math.min(100, smokingPoints + alcoholPoints + latePoints);
+
+    return { cigarettes, alcohol, late, smokingPoints, alcoholPoints, latePoints, score };
+  }
+
+  function dateOffset(days) {
+    const d = new Date();
+    d.setDate(d.getDate() + days);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return y + '-' + m + '-' + day;
+  }
+
+  function renderBehavior() {
+    const b = todayBehavior();
+    const load = behaviorLoad(b);
+
+    if (el('cigarettes')) el('cigarettes').value = b.cigarettes || 0;
+    if (el('beerMl')) el('beerMl').value = b.beerMl || 0;
+    if (el('beerAbv')) el('beerAbv').value = b.beerAbv == null ? 5 : b.beerAbv;
+    if (el('baijiuMl')) el('baijiuMl').value = b.baijiuMl || 0;
+    if (el('baijiuAbv')) el('baijiuAbv').value = b.baijiuAbv == null ? 52 : b.baijiuAbv;
+    if (el('lateHours')) el('lateHours').value = b.lateHours || 0;
+
+    if (el('alcoholCalc')) {
+      el('alcoholCalc').textContent =
+        '纯酒精估算：' + round(load.alcohol, 1) + ' g。换算按体积 × 酒精度 × 0.789 g/ml 估算。';
+    }
+
+    if (el('buffScore')) el('buffScore').textContent = round(load.score);
+    if (el('buffMeter')) el('buffMeter').style.width = clamp(load.score, 0, 100) + '%';
+
+    const smokeClass = load.cigarettes > 0 ? 'bad' : 'good';
+    const alcoholClass = load.alcohol <= 0 ? 'good' : (load.alcohol >= 30 ? 'bad' : 'warn');
+    const lateClass = load.late <= 0 ? 'good' : (load.late >= 2 ? 'bad' : 'warn');
+
+    if (el('buffChips')) {
+      el('buffChips').innerHTML =
+        '<span class="buff-chip ' + smokeClass + '">🚬 ' + round(load.cigarettes) + ' 支</span>' +
+        '<span class="buff-chip ' + alcoholClass + '">🍺 酒精 ' + round(load.alcohol,1) + 'g</span>' +
+        '<span class="buff-chip ' + lateClass + '">🌙 熬夜 ' + round(load.late,1) + 'h</span>';
+    }
+
+    const messages = [];
+    if (load.cigarettes > 0) messages.push('吸烟：所有烟草使用都有害，不设置“安全支数”');
+    if (load.alcohol > 0) messages.push('饮酒：记录纯酒精克数，不把少量饮酒标成“安全”');
+    if (load.late > 0) messages.push('熬夜：建议同时观察连续天数和总睡眠，而不是只看单晚');
+    if (!messages.length) messages.push('今天这三项负 Buff 均为 0');
+    if (el('buffSummary')) {
+      el('buffSummary').textContent =
+        messages.join('；') + '。0–100 分仅用于个人趋势可视化，不是临床风险预测。';
+    }
+
+    if (el('behaviorTrend')) {
+      const days = [];
+      for (let i = -6; i <= 0; i++) {
+        const date = dateOffset(i);
+        const item = state.behaviorLogs.find(x => x.date === date);
+        const score = item ? behaviorLoad(item).score : 0;
+        days.push({date, score});
+      }
+      el('behaviorTrend').innerHTML = days.map(x => {
+        const h = Math.max(2, Math.round(clamp(x.score,0,100) * 0.34));
+        return '<div class="day"><div class="col" style="height:' + h + 'px"></div><small>' +
+          x.date.slice(5).replace('-','/') + '</small></div>';
+      }).join('');
+    }
   }
 
   function sumNutrition(logs) {
@@ -224,6 +315,7 @@
 
     renderConditions();
     renderFasting();
+    renderBehavior();
     renderWeightCharts();
   }
 
@@ -553,6 +645,7 @@
     renderExerciseLog();
     renderRecovery();
     renderProfile();
+    renderBehavior();
   }
 
   function bind() {
@@ -644,6 +737,40 @@
       state.profile.eatStart = el('eatStart').value || '12:00';
       state.profile.eatHours = Number(el('eatHours').value || 8);
       save();renderAll();toast('饮食窗口已保存');
+    };
+
+    ['beerMl','beerAbv','baijiuMl','baijiuAbv','cigarettes','lateHours'].forEach(id => {
+      if (el(id)) el(id).addEventListener('input', () => {
+        const draft = {
+          cigarettes: Number(el('cigarettes').value || 0),
+          beerMl: Number(el('beerMl').value || 0),
+          beerAbv: Number(el('beerAbv').value || 0),
+          baijiuMl: Number(el('baijiuMl').value || 0),
+          baijiuAbv: Number(el('baijiuAbv').value || 0),
+          lateHours: Number(el('lateHours').value || 0)
+        };
+        const g = ethanolGrams(draft.beerMl,draft.beerAbv) + ethanolGrams(draft.baijiuMl,draft.baijiuAbv);
+        if (el('alcoholCalc')) el('alcoholCalc').textContent =
+          '纯酒精估算：' + round(g,1) + ' g。保存后计入今日负 Buff。';
+      });
+    });
+
+    el('saveBehaviorBtn').onclick = () => {
+      const entry = {
+        date: today(),
+        cigarettes: Math.max(0, Number(el('cigarettes').value || 0)),
+        beerMl: Math.max(0, Number(el('beerMl').value || 0)),
+        beerAbv: clamp(Number(el('beerAbv').value || 0), 0, 20),
+        baijiuMl: Math.max(0, Number(el('baijiuMl').value || 0)),
+        baijiuAbv: clamp(Number(el('baijiuAbv').value || 0), 0, 80),
+        lateHours: clamp(Number(el('lateHours').value || 0), 0, 24)
+      };
+      state.behaviorLogs = state.behaviorLogs.filter(x => x.date !== entry.date);
+      state.behaviorLogs.push(entry);
+      state.behaviorLogs = state.behaviorLogs.slice(-400);
+      save();
+      renderAll();
+      toast('今日负 Buff 已保存');
     };
 
     el('addWeightBtn').onclick = () => {
