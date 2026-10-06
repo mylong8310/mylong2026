@@ -116,6 +116,10 @@
     <div class="section-title"><h2>营养摄入</h2><span id="nutritionSummary">今日 0 kcal</span></div>
     <div class="card">
       <div class="quick-foods" id="quickFoods"></div>
+      <div class="food-risk-panel neutral" id="foodRiskPanel">
+        <div class="food-risk-dot" id="foodRiskDot"></div>
+        <div><b id="foodRiskTitle">当前未启用疾病联动</b><div class="note" id="foodRiskReason">在“我的 → 健康模式”开启疾病后，食物会按红 / 黄 / 绿联动。</div></div>
+      </div>
       <div class="field-grid">
         <div class="field"><label>食物</label><select id="foodSelect"></select></div>
         <div class="field"><label>重量（克）</label><input id="foodGram" type="number" inputmode="decimal" value="100" min="1"></div>
@@ -175,6 +179,19 @@
     <div class="section-title"><h2>记录运动</h2><span>按 MET 粗略估算消耗</span></div>
     <div class="card">
       <div class="exercise-type" id="exerciseTypes"></div>
+      <div class="custom-activity-bar">
+        <button class="btn ghost" id="toggleCustomActivityBtn" type="button">＋ 自定义运动 / 冥想</button>
+        <span class="note">自定义项目只保存在本机</span>
+      </div>
+      <div class="custom-activity-form" id="customActivityForm">
+        <div class="field-grid">
+          <div class="field"><label>项目名称</label><input id="customActivityName" placeholder="例如：八段锦 / 冥想 / 爬楼梯"></div>
+          <div class="field"><label>类型</label><select id="customActivityCategory"><option value="exercise">运动</option><option value="meditation">冥想/呼吸</option><option value="mobility">拉伸/活动度</option></select></div>
+          <div class="field"><label>MET（可选）</label><input id="customActivityMet" type="number" step="0.1" min="1" max="20" placeholder="不填自动给参考值"></div>
+          <div class="field"><label>图标</label><input id="customActivityIcon" maxlength="4" placeholder="例如 🧘"></div>
+        </div>
+        <button class="btn secondary" id="saveCustomActivityBtn" type="button" style="width:100%;margin-top:10px">保存自定义项目</button>
+      </div>
       <div class="field-grid">
         <div class="field"><label>时长（分钟）</label><input id="exerciseMin" type="number" value="30" min="1"></div>
         <div class="field"><label>备注</label><input id="exerciseNote" placeholder="例如：5km、腿部训练"></div>
@@ -200,6 +217,61 @@
     <div class="section-title"><h2>肌肉恢复</h2><span>训练后恢复状态</span></div>
     <div class="alert">恢复提示依据“距离上次训练时间 + 主观酸痛程度”做粗略分级，不代表组织已经完全恢复。高强度训练、疼痛、肿胀或功能受限时要更谨慎。</div>
     <div class="muscle-grid" id="muscleGrid" style="margin-top:10px"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><h2>训练就绪度曲线</h2><span>本地估算 · 非医学诊断</span></div>
+    <div class="card recovery-glass">
+      <div class="body-recovery-layout">
+        <div class="body-map-wrap">
+          <div class="body-toggle">
+            <button class="body-side on" data-side="front">正面</button>
+            <button class="body-side" data-side="back">背面</button>
+          </div>
+          <svg class="body-map" id="bodyMap" viewBox="0 0 220 430" aria-label="人体肌肉区域">
+            <defs>
+              <linearGradient id="bodyShell" x1="0" x2="1"><stop offset="0" stop-color="#26362c"/><stop offset="1" stop-color="#111914"/></linearGradient>
+              <filter id="softGlow"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+            </defs>
+            <g id="bodyFront" class="body-side-layer on">
+              <ellipse cx="110" cy="40" rx="25" ry="29" class="body-shell"/>
+              <path d="M90 70 Q110 62 130 70 L143 150 Q138 194 128 230 L135 392 Q130 417 115 417 L108 260 L101 417 Q85 417 82 392 L92 230 Q82 194 77 150 Z" class="body-shell"/>
+              <path data-muscle="chest" d="M86 88 Q110 72 134 88 L131 130 Q110 143 89 130 Z" class="muscle-zone"/>
+              <path data-muscle="shoulders" d="M77 87 Q61 93 58 117 L76 124 L88 91 Z M143 87 Q159 93 162 117 L144 124 L132 91 Z" class="muscle-zone"/>
+              <path data-muscle="arms" d="M59 118 L77 125 L72 211 L55 205 Z M161 118 L143 125 L148 211 L165 205 Z" class="muscle-zone"/>
+              <path data-muscle="core" d="M93 137 L127 137 L128 228 L92 228 Z" class="muscle-zone"/>
+              <path data-muscle="legs" d="M82 233 L105 233 L101 390 L82 390 Z M115 233 L138 233 L138 390 L119 390 Z" class="muscle-zone"/>
+            </g>
+            <g id="bodyBack" class="body-side-layer">
+              <ellipse cx="110" cy="40" rx="25" ry="29" class="body-shell"/>
+              <path d="M90 70 Q110 62 130 70 L143 150 Q138 194 128 230 L135 392 Q130 417 115 417 L108 260 L101 417 Q85 417 82 392 L92 230 Q82 194 77 150 Z" class="body-shell"/>
+              <path data-muscle="back" d="M86 82 Q110 72 134 82 L137 160 Q110 180 83 160 Z" class="muscle-zone"/>
+              <path data-muscle="shoulders" d="M77 87 Q61 93 58 117 L76 124 L88 91 Z M143 87 Q159 93 162 117 L144 124 L132 91 Z" class="muscle-zone"/>
+              <path data-muscle="arms" d="M59 118 L77 125 L72 211 L55 205 Z M161 118 L143 125 L148 211 L165 205 Z" class="muscle-zone"/>
+              <path data-muscle="core" d="M93 166 L127 166 L128 228 L92 228 Z" class="muscle-zone"/>
+              <path data-muscle="legs" d="M82 233 L105 233 L101 390 L82 390 Z M115 233 L138 233 L138 390 L119 390 Z" class="muscle-zone"/>
+            </g>
+          </svg>
+          <div class="body-legend"><span><i class="lg green"></i>就绪</span><span><i class="lg yellow"></i>恢复中</span><span><i class="lg red"></i>优先恢复</span></div>
+        </div>
+
+        <div class="recovery-detail">
+          <div class="between"><div><div class="note">当前肌群</div><h3 id="recoveryMuscleName">腿</h3></div><div class="readiness-number"><strong id="recoveryReadiness">100</strong><small>% 就绪度</small></div></div>
+          <div class="chart recovery-chart" id="recoveryCurve"></div>
+          <div class="grid2">
+            <div class="field"><label>训练强度 RPE 1–10</label><input id="recoveryRpe" type="number" min="1" max="10" value="7"></div>
+            <div class="field"><label>主观酸痛 0–5</label><input id="recoverySoreness" type="number" min="0" max="5" value="2"></div>
+            <div class="field"><label>训练时长（分钟）</label><input id="recoveryDuration" type="number" min="5" max="240" value="45"></div>
+            <div class="field"><label>睡眠（小时）</label><input id="recoverySleep" type="number" min="0" max="14" step="0.5" value="7"></div>
+          </div>
+          <div class="recovery-actions">
+            <button class="btn" id="recordRecoveryTrainingBtn" type="button">记录该肌群训练</button>
+            <button class="btn ghost" id="refreshRecoveryBtn" type="button">刷新曲线</button>
+          </div>
+          <div class="note" id="recoveryEvidenceNote" style="margin-top:10px"></div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div class="section" id="zhuangziSection">
@@ -344,6 +416,24 @@
       </div>
       <button class="btn secondary" id="addWeightBtn" style="width:100%;margin-top:12px">添加体重记录</button>
       <div class="chart" id="profileWeightChart"></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><h2>健康报告</h2><span>本地聚合 · 无需 API</span></div>
+    <div class="card report-card">
+      <div class="report-tabs">
+        <button class="report-tab on" data-report-days="7">周报</button>
+        <button class="report-tab" data-report-days="30">月报</button>
+      </div>
+      <div class="report-hero">
+        <div><div class="note" id="reportRange">最近 7 天</div><h3 id="reportHeadline">正在计算本地趋势…</h3></div>
+        <div class="report-completeness"><strong id="reportCompleteness">0</strong><small>% 数据完整度</small></div>
+      </div>
+      <div class="report-metrics" id="reportMetrics"></div>
+      <div class="chart" id="reportTrendChart"></div>
+      <div class="report-insights" id="reportInsights"></div>
+      <div class="note">报告强调趋势变化，不生成未经验证的“综合健康分”或死亡风险概率。</div>
     </div>
   </div>
 
