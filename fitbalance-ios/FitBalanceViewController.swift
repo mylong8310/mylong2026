@@ -51,9 +51,20 @@ final class FitBalanceViewController: UIViewController, WKScriptMessageHandler {
         switch action {
         case "getTodaySteps", "requestActivityPermission":
             readTodaySteps()
+        case "dialNumber":
+            let payload = body["payload"] as? [String: Any]
+            let raw = payload?["phone"] as? String ?? ""
+            dialNumber(raw)
         default:
             break
         }
+    }
+
+    private func dialNumber(_ raw: String) {
+        let allowed = raw.filter { $0.isNumber || $0 == "+" }
+        guard !allowed.isEmpty,
+              let url = URL(string: "tel://\(allowed)") else { return }
+        UIApplication.shared.open(url)
     }
 
     private func readTodaySteps() {
