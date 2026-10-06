@@ -1,18 +1,18 @@
-name: Build Qiurun APK
+name: Publish Qiurun APK
 
 on:
-  pull_request:
-    branches: [ main ]
+  push:
+    branches: [ qiurun-apk-20261006 ]
     paths:
       - 'qiurun-android/**'
       - '.github/workflows/build-qiurun-apk.yml'
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  build:
+  build-and-release:
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
@@ -50,10 +50,21 @@ jobs:
       - name: Rename APK
         run: cp qiurun-android/app/build/outputs/apk/debug/app-debug.apk Qiurun-Standalone-v1.1.0.apk
 
-      - name: Upload APK
+      - name: Upload workflow artifact
         uses: actions/upload-artifact@v4
         with:
           name: Qiurun-Standalone-APK
           path: Qiurun-Standalone-v1.1.0.apk
           if-no-files-found: error
-          retention-days: 7
+          retention-days: 30
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          if gh release view v1.1.0 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload v1.1.0 Qiurun-Standalone-v1.1.0.apk --repo "$GITHUB_REPOSITORY" --clobber
+          else
+            gh release create v1.1.0 Qiurun-Standalone-v1.1.0.apk               --repo "$GITHUB_REPOSITORY"               --target "$GITHUB_SHA"               --title "秋润 v1.1.0 独立安装版"               --notes "秋润 Android 独立安装版。核心内容和交互已打包进 APK，不依赖 Grok 临时预览地址，可离线使用。"
+          fi
