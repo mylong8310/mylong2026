@@ -15,8 +15,15 @@
     profile: {
       sex: 'male', age: 40, height: 175, weight: 70, goal: 'maintain',
       activityLevel: 1.375, stepGoal: 8000, manualCalGoal: '',
-      diabetes: false, gout: false, fasting: false, eatStart: '12:00', eatHours: 8
+      diabetes: false, gout: false, hypertension: false, heartDisease: false,
+      priorMI: false, priorStroke: false,
+      emergencyContacts: [
+        {name:'', relation:'', phone:''},
+        {name:'', relation:'', phone:''}
+      ],
+      fasting: false, eatStart: '12:00', eatHours: 8
     },
+    onboardingCompleted: false,
     foodLogs: [],
     exerciseLogs: [],
     weightLogs: [],
@@ -35,6 +42,7 @@
     ...defaults,
     ...state,
     profile: {...defaults.profile, ...(state.profile || {})},
+    onboardingCompleted: !!state.onboardingCompleted,
     foodLogs: Array.isArray(state.foodLogs) ? state.foodLogs : [],
     exerciseLogs: Array.isArray(state.exerciseLogs) ? state.exerciseLogs : [],
     weightLogs: Array.isArray(state.weightLogs) ? state.weightLogs : [],
@@ -42,6 +50,12 @@
     recovery: state.recovery || {},
     behaviorLogs: Array.isArray(state.behaviorLogs) ? state.behaviorLogs : []
   };
+  if (!Array.isArray(state.profile.emergencyContacts)) {
+    state.profile.emergencyContacts = defaults.profile.emergencyContacts.map(x => ({...x}));
+  }
+  while (state.profile.emergencyContacts.length < 2) {
+    state.profile.emergencyContacts.push({name:'', relation:'', phone:''});
+  }
 
   const foods = [
     {id:'rice',name:'熟米饭',icon:'🍚',kcal:116,p:2.6,c:25.9,f:0.3,purine:'low'},
@@ -253,6 +267,96 @@
     return false;
   }
 
+  function sanitizePhone(value) {
+    return String(value || '').replace(/[^0-9+]/g, '').slice(0, 24);
+  }
+
+  function callNumber(value) {
+    const phone = sanitizePhone(value);
+    if (!phone) return toast('请先填写电话号码');
+    try {
+      if (window.FitBridge && typeof FitBridge.dialNumber === 'function') {
+        FitBridge.dialNumber(phone);
+        return;
+      }
+      if (postIosNative('dialNumber', {phone})) return;
+      window.location.href = 'tel:' + phone;
+    } catch (e) {
+      window.location.href = 'tel:' + phone;
+    }
+  }
+
+  function cardiovascularModeOn() {
+    const p = state.profile;
+    return !!(p.hypertension || p.heartDisease || p.priorMI || p.priorStroke);
+  }
+
+  function renderEmergency() {
+    const p = state.profile;
+    const contacts = p.emergencyContacts || [];
+    const c1 = contacts[0] || {};
+    const c2 = contacts[1] || {};
+    const section = el('emergencySection');
+
+    if (section) {
+      section.style.display = cardiovascularModeOn() || c1.phone || c2.phone ? '' : 'none';
+    }
+
+    const box = el('emergencyContactButtons');
+    if (box) {
+      const button = (c, idx) => {
+        const phone = sanitizePhone(c.phone);
+        const label = c.name || ('联系人 ' + idx);
+        const meta = [c.relation, phone].filter(Boolean).join(' · ');
+        return '<button class="contact-call" type="button" data-call-contact="' + (idx-1) + '"' +
+          (phone ? '' : ' disabled') + '><b>☎ ' + label + '</b><small>' +
+          (meta || '尚未设置') + '</small></button>';
+      };
+      box.innerHTML = button(c1,1) + button(c2,2);
+      box.querySelectorAll('[data-call-contact]').forEach(btn => {
+        btn.onclick = () => {
+          const c = contacts[Number(btn.dataset.callContact)] || {};
+          callNumber(c.phone);
+        };
+      });
+    }
+
+    if (el('profileCallPrimaryBtn')) {
+      el('profileCallPrimaryBtn').disabled = !sanitizePhone(c1.phone);
+      el('profileCallPrimaryBtn').textContent = c1.phone ? ('☎ 呼叫 ' + (c1.name || '主要联系人')) : '☎ 主要联系人未设置';
+    }
+  }
+
+  function showOnboardingIfNeeded() {
+    if (!state.onboardingCompleted && el('onboarding')) {
+      el('onboarding').classList.add('on');
+    }
+  }
+
+  function completeOnboarding(skip) {
+    const p = state.profile;
+    if (!skip) {
+      p.age = clamp(Number(el('onAge').value || p.age), 14, 100);
+      p.weight = clamp(Number(el('onWeight').value || p.weight), 30, 300);
+      p.hypertension = !!el('onHypertension').checked;
+      p.heartDisease = !!el('onHeartDisease').checked;
+      p.priorMI = !!el('onPriorMI').checked;
+      p.priorStroke = !!el('onPriorStroke').checked;
+      p.diabetes = !!el('onDiabetes').checked;
+      p.gout = !!el('onGout').checked;
+      const name = String(el('onIceName').value || '').trim();
+      const phone = sanitizePhone(el('onIcePhone').value);
+      if (name || phone) {
+        p.emergencyContacts[0] = {name, relation:'紧急联系人', phone};
+      }
+    }
+    state.onboardingCompleted = true;
+    save();
+    if (el('onboarding')) el('onboarding').classList.remove('on');
+    renderAll();
+    toast(skip ? '已跳过，可稍后在“我的”填写' : '基础资料已保存');
+  }
+
   function readSteps() {
     const manual = Number(state.manualSteps[today()] || 0);
     try {
@@ -338,6 +442,7 @@
       : '基于体重与目标的运动营养估算';
 
     renderConditions();
+    renderEmergency();
     renderFasting();
     renderBehavior();
     renderWeightCharts();
@@ -347,14 +452,23 @@
     const wrap = el('conditionAlerts');
     const p = state.profile;
     const blocks = [];
-    if (!p.diabetes && !p.gout) {
-      blocks.push('<div class="alert">当前未开启疾病模式。可以在“我的 → 健康模式”选择糖尿病、痛风或同时选择。</div>');
+    if (!p.diabetes && !p.gout && !p.hypertension && !p.heartDisease && !p.priorMI && !p.priorStroke) {
+      blocks.push('<div class="alert">当前未开启疾病模式。可以在“我的 → 健康模式”补充基础疾病信息。</div>');
     }
     if (p.diabetes) {
-      blocks.push('<div class="alert warn"><b>糖尿病模式：</b>重点看每餐碳水量与全天分布，不使用一个固定宏量比例替代个体化计划。若运动前后易低血糖，或使用胰岛素/促泌剂，应按医生给出的监测与补糖方案执行。</div>');
+      blocks.push('<div class="alert warn"><b>糖尿病：</b>重点看每餐碳水量与全天分布。若使用胰岛素或可能导致低血糖的药物，运动和禁食计划需要结合血糖监测及医疗建议。</div>');
     }
     if (p.gout) {
-      blocks.push('<div class="alert warn"><b>痛风模式：</b>优先保证水分，限制酒精、高果糖饮料和高嘌呤食物；避免脱水、暴饮暴食与快速减重。急性发作期运动量应更保守。</div>');
+      blocks.push('<div class="alert warn"><b>痛风 / 高尿酸：</b>优先保证水分，限制酒精、高果糖饮料和高嘌呤食物，避免脱水和快速减重。</div>');
+    }
+    if (p.hypertension) {
+      blocks.push('<div class="alert warn"><b>高血压：</b>运动强度和饮食钠管理应更保守；若出现胸痛、神经系统异常、明显呼吸困难或严重不适，停止运动并寻求医疗帮助。</div>');
+    }
+    if (p.heartDisease || p.priorMI) {
+      blocks.push('<div class="alert red"><b>心脏病 / 既往心梗：</b>新的胸部压迫或疼痛、明显气短、恶心/头晕、下颌/颈/背或手臂肩部不适应按急症处理，不要等待 App 判断。</div>');
+    }
+    if (p.priorStroke) {
+      blocks.push('<div class="alert red"><b>既往脑卒中 / TIA：</b>出现平衡、视力、面部、手臂或言语的突然异常时，用 B.E.F.A.S.T. 思路识别并立即求助，记录症状开始时间。</div>');
     }
     wrap.innerHTML = blocks.join('');
   }
@@ -623,7 +737,21 @@
     el('eatHours').value = String(p.eatHours || 8);
     el('diabetesSwitch').classList.toggle('on', !!p.diabetes);
     el('goutSwitch').classList.toggle('on', !!p.gout);
+    el('hypertensionSwitch').classList.toggle('on', !!p.hypertension);
+    el('heartDiseaseSwitch').classList.toggle('on', !!p.heartDisease);
+    el('priorMISwitch').classList.toggle('on', !!p.priorMI);
+    el('priorStrokeSwitch').classList.toggle('on', !!p.priorStroke);
     el('fastingSwitch').classList.toggle('on', !!p.fasting);
+
+    const contacts = p.emergencyContacts || [];
+    const c1 = contacts[0] || {};
+    const c2 = contacts[1] || {};
+    el('ice1Name').value = c1.name || '';
+    el('ice1Relation').value = c1.relation || '';
+    el('ice1Phone').value = c1.phone || '';
+    el('ice2Name').value = c2.name || '';
+    el('ice2Relation').value = c2.relation || '';
+    el('ice2Phone').value = c2.phone || '';
 
     const m = profileMetrics();
     el('profileCalc').innerHTML =
@@ -669,6 +797,7 @@
     renderExerciseLog();
     renderRecovery();
     renderProfile();
+    renderEmergency();
     renderBehavior();
   }
 
@@ -758,6 +887,18 @@
     el('goutSwitch').onclick = () => {
       state.profile.gout = !state.profile.gout;save();renderAll();
     };
+    el('hypertensionSwitch').onclick = () => {
+      state.profile.hypertension = !state.profile.hypertension;save();renderAll();
+    };
+    el('heartDiseaseSwitch').onclick = () => {
+      state.profile.heartDisease = !state.profile.heartDisease;save();renderAll();
+    };
+    el('priorMISwitch').onclick = () => {
+      state.profile.priorMI = !state.profile.priorMI;save();renderAll();
+    };
+    el('priorStrokeSwitch').onclick = () => {
+      state.profile.priorStroke = !state.profile.priorStroke;save();renderAll();
+    };
     el('fastingSwitch').onclick = () => {
       state.profile.fasting = !state.profile.fasting;save();renderAll();
     };
@@ -801,6 +942,34 @@
       toast('今日负 Buff 已保存');
     };
 
+    el('saveEmergencyContactsBtn').onclick = () => {
+      state.profile.emergencyContacts = [
+        {
+          name:String(el('ice1Name').value || '').trim(),
+          relation:String(el('ice1Relation').value || '').trim(),
+          phone:sanitizePhone(el('ice1Phone').value)
+        },
+        {
+          name:String(el('ice2Name').value || '').trim(),
+          relation:String(el('ice2Relation').value || '').trim(),
+          phone:sanitizePhone(el('ice2Phone').value)
+        }
+      ];
+      save();
+      renderEmergency();
+      toast('紧急联系人已保存');
+    };
+
+    el('call120Btn').onclick = () => callNumber('120');
+    el('profileCall120Btn').onclick = () => callNumber('120');
+    el('profileCallPrimaryBtn').onclick = () => {
+      const c = (state.profile.emergencyContacts || [])[0] || {};
+      callNumber(c.phone);
+    };
+
+    el('skipOnboardingBtn').onclick = () => completeOnboarding(true);
+    el('saveOnboardingBtn').onclick = () => completeOnboarding(false);
+
     el('addWeightBtn').onclick = () => {
       const date = el('weightDate').value || today();
       const weight = Number(el('weightEntry').value);
@@ -819,6 +988,7 @@
   bind();
   renderDish();
   renderAll();
+  showOnboardingIfNeeded();
   setInterval(() => {
     renderFasting();
     renderSteps();
