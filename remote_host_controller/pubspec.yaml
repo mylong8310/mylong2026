@@ -1,0 +1,24 @@
+name: remote_host_controller
+description: Local-first remote Windows host controller over ZeroTier/LAN.
+publish_to: 'none'
+version: 0.2.0+2
+
+environment:
+  sdk: '>=3.12.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  dartssh2: ^4.1.0
+  flutter_secure_storage: ^11.2.0
+  sqflite: ^2.4.4+1
+  url_launcher: ^6.3.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
