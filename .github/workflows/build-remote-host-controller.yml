@@ -1,0 +1,89 @@
+name: Build Remote Host Controller APK
+
+on:
+  push:
+    branches:
+      - remote-host-controller-build
+    paths:
+      - 'remote_host_controller/**'
+      - '.github/workflows/build-remote-host-controller.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.8'
+          channel: stable
+          cache: true
+
+      - name: Create Android shell
+        run: |
+          rm -rf build_app
+          flutter create --platforms=android --org com.remotehost --project-name remote_host_controller build_app
+          cp remote_host_controller/pubspec.yaml build_app/pubspec.yaml
+          cp remote_host_controller/lib/*.dart build_app/lib/
+
+      - name: Configure Android manifest
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('build_app/android/app/src/main/AndroidManifest.xml')
+          s = p.read_text()
+          if 'android.permission.INTERNET' not in s:
+              s = s.replace('<manifest xmlns:android="http://schemas.android.com/apk/res/android">', '<manifest xmlns:android="http://schemas.android.com/apk/res/android">\n    <uses-permission android:name="android.permission.INTERNET" />')
+          s = s.replace('android:label="remote_host_controller"', 'android:label="远程主机"')
+          if '<queries>' not in s:
+              q = '''    <queries>
+                  <intent>
+                      <action android:name="android.intent.action.VIEW" />
+                      <data android:scheme="rdp" />
+                  </intent>
+                  <intent>
+                      <action android:name="android.intent.action.VIEW" />
+                      <data android:scheme="vnc" />
+                  </intent>
+              </queries>
+          '''
+              s = s.replace('    <application', q + '    <application')
+          p.write_text(s)
+          PY
+
+      - name: Get dependencies
+        working-directory: build_app
+        run: flutter pub get
+
+      - name: Analyze
+        working-directory: build_app
+        run: flutter analyze
+
+      - name: Build APK
+        working-directory: build_app
+        run: flutter build apk --release
+
+      - name: Rename APK
+        run: cp build_app/build/app/outputs/flutter-apk/app-release.apk Remote-Host-Controller-v0.2.0.apk
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Remote-Host-Controller-v0.2.0
+          path: Remote-Host-Controller-v0.2.0.apk
+          if-no-files-found: error
+          retention-days: 30
