@@ -40,7 +40,7 @@ jobs:
           yes | sdkmanager --licenses >/dev/null || true
           sdkmanager "platforms;android-35" "build-tools;35.0.0"
 
-      - name: Build debug APK
+      - name: Build standalone APK
         shell: bash
         run: |
           export ANDROID_HOME="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
@@ -48,12 +48,12 @@ jobs:
           gradle -p qiurun-android :app:assembleDebug --no-daemon --stacktrace
 
       - name: Rename APK
-        run: cp qiurun-android/app/build/outputs/apk/debug/app-debug.apk Qiurun-v1.0.0.apk
+        run: cp qiurun-android/app/build/outputs/apk/debug/app-debug.apk Qiurun-Standalone-v1.1.0.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Qiurun-APK
-          path: Qiurun-v1.0.0.apk
+          name: Qiurun-Standalone-APK
+          path: Qiurun-Standalone-v1.1.0.apk
           if-no-files-found: error
           retention-days: 7
