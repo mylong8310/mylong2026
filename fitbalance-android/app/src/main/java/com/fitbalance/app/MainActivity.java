@@ -350,6 +350,16 @@ public class MainActivity extends Activity implements SensorEventListener {
         }
 
         @JavascriptInterface
+        public boolean upsertDailyMetricsJson(String json) {
+            return database != null && database.upsertDailyMetricsJson(json);
+        }
+
+        @JavascriptInterface
+        public String getDailyMetricsJson(int days) {
+            return database != null ? database.getDailyMetricsJson(days) : "[]";
+        }
+
+        @JavascriptInterface
         public String getStepStatusJson() {
             int steps = getTodayStepsInternal();
             String confidence = prefs.getString("step_ledger_confidence", "waiting");
