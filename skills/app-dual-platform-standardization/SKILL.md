@@ -543,7 +543,111 @@ Science 是高权威期刊之一，但不是所有健康问题都必须只找 Sc
 - 疾病规则和知识数据使用独立 version。
 - 云同步上线后使用 sync_version / updated_at / conflict strategy。
 
-## 22. 发布策略
+## 22. 版本保留与可回滚协议
+
+所有升级版必须保留历史版本，不覆盖旧版本。
+
+### 发布规则
+
+- 每个版本使用独立语义化版本号，例如 `v1.4.0`、`v1.5.0`。
+- GitHub Release 每个版本使用独立 tag。
+- 新版本不得删除、替换或覆盖以前已发布的 APK / IPA / Release。
+- Release 资产文件名必须包含版本号，例如：
+  - `FitBalance-Standalone-v1.4.0.apk`
+  - `FitBalance-Standalone-v1.5.0.apk`
+- 禁止长期使用 `latest.apk` 作为唯一发布物。
+- 可以额外提供 latest 链接，但它只能指向最新版本，历史文件必须继续存在。
+
+### 为什么必须保留旧版本
+
+用于：
+
+- 新版本出现严重 Bug 时立即回滚。
+- 对比某个功能从哪个版本开始出现问题。
+- 验证数据库 migration 是否正确。
+- 复现实验、算法、规则引擎和 UI 行为。
+- 用户设备兼容性问题排查。
+- 医疗 / 营养规则发生变化时保留历史审计依据。
+- 对比新旧模型、食物数据库和 evidence 版本。
+- 避免“更新以后旧功能无法找回”。
+
+### 代码保留
+
+每个正式发布版本至少同时保留：
+
+- Git tag
+- Release
+- APK / IPA 安装包
+- 对应 commit SHA
+- schemaVersion
+- ruleVersion
+- contentVersion
+- evidenceVersion
+- CHANGELOG
+
+关键大版本建议建立长期分支，例如：
+
+```
+release/1.x
+release/2.x
+```
+
+普通小版本不要求单独长期分支，Git tag + commit 即可完整恢复。
+
+### 数据库兼容
+
+App 升级：
+
+```
+旧版本数据库
+→ migration
+→ 新版本数据库
+```
+
+不得采用删除数据库重新创建的方式完成升级。
+
+每次 migration 必须：
+
+- 保留用户历史数据
+- 保留自定义运动 / 冥想
+- 保留紧急联系人
+- 保留健康档案
+- 保留庄子阅读进度
+- 保留饮食 / 运动 / 体重 / Buff 历史
+- 有 schemaVersion
+- 可验证迁移结果
+
+### 回滚注意
+
+数据库结构一旦升级，新版本数据库未必可以直接被旧版本读取。
+
+因此发布前需要明确：
+
+- APK 回滚是否兼容当前数据库。
+- 如果不兼容，要先导出本地备份或提供数据库降级策略。
+- 禁止让用户为了回滚而必须卸载 App 丢失数据。
+
+### 发布记录
+
+每次 Release 必须写：
+
+```
+Version
+Build date
+Commit SHA
+Database schemaVersion
+Rule version
+Content version
+Evidence version
+Added
+Changed
+Fixed
+Known issues
+Migration notes
+Rollback notes
+```
+
+## 23. 发布策略
 
 Android：
 - 先 GitHub Release / 测试分发。
@@ -555,7 +659,7 @@ iOS：
 - 再配置 signing / provisioning / TestFlight / App Store。
 - 不为等待 iOS 发布而阻塞 Android 产品验证。
 
-## 23. 完成定义 Definition of Done
+## 24. 完成定义 Definition of Done
 
 每个 App/版本在报告“完成”前至少检查：
 
