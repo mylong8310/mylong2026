@@ -190,6 +190,26 @@ public class FitDatabase extends SQLiteOpenHelper {
                         "updated_at TEXT NOT NULL" +
                         ")"
         );
+
+        db.execSQL(
+                "CREATE TABLE IF NOT EXISTS daily_metrics (" +
+                        "date TEXT PRIMARY KEY," +
+                        "intake_kcal REAL NOT NULL DEFAULT 0," +
+                        "protein_g REAL NOT NULL DEFAULT 0," +
+                        "carbs_g REAL NOT NULL DEFAULT 0," +
+                        "fat_g REAL NOT NULL DEFAULT 0," +
+                        "steps INTEGER NOT NULL DEFAULT 0," +
+                        "activity_kcal REAL NOT NULL DEFAULT 0," +
+                        "exercise_min REAL NOT NULL DEFAULT 0," +
+                        "meditation_min REAL NOT NULL DEFAULT 0," +
+                        "weight_kg REAL," +
+                        "cigarettes REAL NOT NULL DEFAULT 0," +
+                        "alcohol_g REAL NOT NULL DEFAULT 0," +
+                        "late_hours REAL NOT NULL DEFAULT 0," +
+                        "red_food_count INTEGER NOT NULL DEFAULT 0," +
+                        "updated_at TEXT NOT NULL" +
+                        ")"
+        );
     }
 
     private void createAuditTables(SQLiteDatabase db) {
@@ -689,6 +709,68 @@ public class FitDatabase extends SQLiteOpenHelper {
         v.put("boot_id", bootId == null ? "" : bootId);
         v.put("updated_at", nowIso());
         db.insertWithOnConflict("daily_steps", null, v, SQLiteDatabase.CONFLICT_REPLACE);
+    }
+
+    public boolean upsertDailyMetricsJson(String json) {
+        try {
+            JSONObject o = new JSONObject(json == null ? "{}" : json);
+            String date = o.optString("date", "");
+            if (date.isEmpty()) return false;
+
+            ContentValues v = new ContentValues();
+            v.put("date", date);
+            v.put("intake_kcal", o.optDouble("intakeKcal", 0));
+            v.put("protein_g", o.optDouble("proteinG", 0));
+            v.put("carbs_g", o.optDouble("carbsG", 0));
+            v.put("fat_g", o.optDouble("fatG", 0));
+            v.put("steps", Math.max(0, o.optInt("steps", 0)));
+            v.put("activity_kcal", o.optDouble("activityKcal", 0));
+            v.put("exercise_min", o.optDouble("exerciseMin", 0));
+            v.put("meditation_min", o.optDouble("meditationMin", 0));
+            if (o.has("weightKg") && !o.isNull("weightKg")) v.put("weight_kg", o.optDouble("weightKg"));
+            v.put("cigarettes", o.optDouble("cigarettes", 0));
+            v.put("alcohol_g", o.optDouble("alcoholG", 0));
+            v.put("late_hours", o.optDouble("lateHours", 0));
+            v.put("red_food_count", Math.max(0, o.optInt("redFoodCount", 0)));
+            v.put("updated_at", nowIso());
+
+            return getWritableDatabase().insertWithOnConflict(
+                    "daily_metrics", null, v, SQLiteDatabase.CONFLICT_REPLACE) != -1;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    public String getDailyMetricsJson(int days) {
+        JSONArray out = new JSONArray();
+        int limit = Math.max(1, Math.min(days, 366));
+        try (Cursor c = getReadableDatabase().rawQuery(
+                "SELECT date,intake_kcal,protein_g,carbs_g,fat_g,steps,activity_kcal,exercise_min,meditation_min," +
+                        "weight_kg,cigarettes,alcohol_g,late_hours,red_food_count,updated_at " +
+                        "FROM daily_metrics ORDER BY date DESC LIMIT ?",
+                new String[]{String.valueOf(limit)})) {
+            while (c.moveToNext()) {
+                JSONObject o = new JSONObject();
+                o.put("date", c.getString(0));
+                o.put("intakeKcal", c.getDouble(1));
+                o.put("proteinG", c.getDouble(2));
+                o.put("carbsG", c.getDouble(3));
+                o.put("fatG", c.getDouble(4));
+                o.put("steps", c.getInt(5));
+                o.put("activityKcal", c.getDouble(6));
+                o.put("exerciseMin", c.getDouble(7));
+                o.put("meditationMin", c.getDouble(8));
+                if (!c.isNull(9)) o.put("weightKg", c.getDouble(9)); else o.put("weightKg", JSONObject.NULL);
+                o.put("cigarettes", c.getDouble(10));
+                o.put("alcoholG", c.getDouble(11));
+                o.put("lateHours", c.getDouble(12));
+                o.put("redFoodCount", c.getInt(13));
+                o.put("updatedAt", c.getString(14));
+                out.put(o);
+            }
+        } catch (Exception ignored) {
+        }
+        return out.toString();
     }
 
     public String getStepHistoryJson(int days) {
