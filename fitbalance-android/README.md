@@ -1,116 +1,53 @@
-# 动衡 FitBalance v1.4.0
+# 动衡 FitBalance v1.5.0 RC
 
-本版本继续坚持：**核心功能本地独立运行，API 只预留。**
+当前阶段首先修正“版本升级基础设施”，避免继续用一次性 debug 签名发布新版本。
 
-## v1.4.0 新增
+## v1.5.0 基础变更
 
-### 疾病 × 食物红黄绿规则引擎
+- Android `versionCode = 6`
+- SQLite `schemaVersion = 3`
+- 数据库升级使用非破坏 migration，不删除用户历史数据
+- 新增 `release_audit` 和 `migration_audit`
+- App 本地记录：
+  - appVersion
+  - versionCode
+  - schemaVersion
+  - ruleVersion
+  - contentVersion
+  - evidenceVersion
+  - commit SHA
+- “我的”页面新增版本与数据审计卡
+- GitHub Release 改为历史版本不可覆盖
+- 正式发布 APK 改为长期固定 release keystore
+- 工作流先执行 JS / JSON / Android 编译验证，再允许签名发布
 
-规则保存在本地 SQLite，而不是散落在 UI：
+## 稳定签名
 
-- `evidence`
-- `food_disease_rules`
+正式发布需要 GitHub Actions Secrets：
 
-目前联动：
+- `FITBALANCE_KEYSTORE_BASE64`
+- `FITBALANCE_KEYSTORE_PASSWORD`
+- `FITBALANCE_KEY_ALIAS`
+- `FITBALANCE_KEY_PASSWORD`
 
-- 痛风 / 高尿酸
-- 糖尿病
-- 高血压
-- 冠心病 / 心脏病 / 既往心梗 / 既往卒中（统一心血管膳食规则）
+任何 keystore / 密码均不得提交到 Git。
 
-结果统一输出：
+详见：
 
-- 绿色：当前疾病模式下相对友好
-- 黄色：注意份量、频率或烹调方式
-- 红色：当前疾病模式下建议限制
+`docs/SIGNING_AND_RELEASE.md`
 
-每条规则带 `evidence_id`，便于以后数据库/API更新。
+## 旧版本兼容说明
 
-### 自定义运动 / 冥想
+v1.0.0–v1.4.0 使用 GitHub Actions 临时 debug 签名，无法保证与新的长期 release key 原地覆盖安装。
 
-用户可本机创建：
+v1.5.0 是稳定签名链的起点。从这一版开始，只要长期私钥不丢失、包名不变、versionCode 单调递增，就可以维持后续 Android 正常升级链。
 
-- 自定义运动
-- 冥想 / 呼吸
-- 拉伸 / 活动度
+如果旧版已有重要本地数据，在没有备份前不要直接卸载。
 
-可设置名称、图标、MET。自定义项目和历史记录保存在本机。
+## 历史版本
 
-### 肌肉恢复曲线
-
-将旧的固定 24/48 小时判断升级为“训练就绪度估算”：
-
-输入：
-
-- 距离上次训练小时数
-- RPE
-- 训练时长
-- 主观酸痛 0–5
-- 睡眠时长
-
-输出：
-
-- 0–100% 就绪度估算
-- 0–96 小时曲线
-- 绿色 / 黄色 / 红色肌群状态
-
-这是训练管理启发式模型，不是肌肉损伤检测。
-
-### 人体肌群图
-
-新增离线交互式人体肌群图：
-
-- 正面 / 背面
-- 胸
-- 背
-- 腿
-- 肩
-- 手臂
-- 核心
-
-肌群颜色直接与恢复状态联动。
-
-### 周报 / 月报
-
-全部在本地聚合：
-
-- 平均步数
-- 运动分钟
-- 冥想分钟
-- 日均摄入热量
-- 蛋白 / 碳水
-- 香烟支数
-- 纯酒精克数
-- 熬夜时长
-- 疾病联动红色食物次数
-- 体重变化
-- 数据完整度
-- 摄入 / 活动消耗趋势
-
-不生成虚构的综合健康分或死亡风险概率。
-
-## 证据层
+所有历史 Release 与 APK 保留。
 
 见：
 
-`docs/evidence-v1.4.md`
-
-核心来源：
-
-- ACR 2020 Gout Guideline
-- ADA Standards of Care in Diabetes—2026
-- ESC 2024 Hypertension Guideline
-- AHA 2021 Cardiovascular Dietary Guidance
-- PubMed 系统综述/Meta-analysis：阻力训练后 MPS、运动诱发肌肉损伤时间过程
-
-## 离线边界
-
-v1.4.0 的上述功能均不要求服务器 API。
-
-未来 API 仅用于：
-
-- 规则与证据更新
-- 食物库扩展
-- AI 食物照片识别
-- 云同步 / 多设备
-- AI 周报解读
+`CHANGELOG.md`
