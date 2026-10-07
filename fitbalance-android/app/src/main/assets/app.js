@@ -61,26 +61,30 @@
     state.profile.emergencyContacts.push({name:'', relation:'', phone:''});
   }
 
-  const foods = [
-    {id:'rice',name:'熟米饭',icon:'🍚',kcal:116,p:2.6,c:25.9,f:0.3,purine:'low'},
-    {id:'noodle',name:'熟面条',icon:'🍜',kcal:137,p:4.5,c:25.0,f:2.0,purine:'low'},
-    {id:'oats',name:'燕麦',icon:'🌾',kcal:389,p:16.9,c:66.3,f:6.9,purine:'low'},
-    {id:'chicken',name:'鸡胸肉',icon:'🍗',kcal:165,p:31.0,c:0,f:3.6,purine:'moderate'},
-    {id:'egg',name:'鸡蛋',icon:'🥚',kcal:143,p:13.0,c:0.7,f:9.5,purine:'low'},
-    {id:'beef',name:'瘦牛肉',icon:'🥩',kcal:250,p:26.0,c:0,f:15.0,purine:'high'},
-    {id:'tofu',name:'豆腐',icon:'◻️',kcal:76,p:8.1,c:1.9,f:4.8,purine:'low'},
-    {id:'salmon',name:'三文鱼',icon:'🐟',kcal:208,p:20.0,c:0,f:13.0,purine:'moderate'},
-    {id:'milk',name:'全脂牛奶',icon:'🥛',kcal:61,p:3.2,c:4.8,f:3.3,purine:'low'},
-    {id:'yogurt',name:'原味酸奶',icon:'🥣',kcal:63,p:5.2,c:7.0,f:1.5,purine:'low'},
-    {id:'banana',name:'香蕉',icon:'🍌',kcal:89,p:1.1,c:23.0,f:0.3,purine:'low'},
-    {id:'apple',name:'苹果',icon:'🍎',kcal:52,p:0.3,c:14.0,f:0.2,purine:'low'},
-    {id:'potato',name:'土豆',icon:'🥔',kcal:77,p:2.0,c:17.0,f:0.1,purine:'low'},
-    {id:'sweetpotato',name:'红薯',icon:'🍠',kcal:86,p:1.6,c:20.1,f:0.1,purine:'low'},
-    {id:'broccoli',name:'西兰花',icon:'🥦',kcal:34,p:2.8,c:6.6,f:0.4,purine:'low'},
-    {id:'peanut',name:'花生',icon:'🥜',kcal:567,p:25.8,c:16.1,f:49.2,purine:'low'},
-    {id:'avocado',name:'牛油果',icon:'🥑',kcal:160,p:2.0,c:8.5,f:14.7,purine:'low'},
-    {id:'shrimp',name:'虾',icon:'🦐',kcal:99,p:24.0,c:0.2,f:0.3,purine:'high'}
+  const fallbackFoods = [
+    {id:'rice',name:'米饭（蒸，熟重）',icon:'🍚',kcal:120,p:2.7,c:25.9,f:0.3,purine:'low',basis:'每100g熟重',source_name:'中国食物交换份公开引用'},
+    {id:'rice_raw',name:'大米（生重，谷物类参考）',icon:'🌾',kcal:360,p:10.0,c:76.0,f:2.0,purine:'low',basis:'每100g生重',source_name:'中国食物交换份公开引用'},
+    {id:'chicken',name:'鸡胸肉（熟）',icon:'🍗',kcal:165,p:31.0,c:0,f:3.6,purine:'moderate',basis:'每100g熟重',source_name:'USDA FoodData Central'},
+    {id:'egg',name:'鸡蛋（熟）',icon:'🥚',kcal:155,p:12.6,c:1.1,f:10.6,purine:'low',basis:'每100g',source_name:'USDA FoodData Central'},
+    {id:'banana',name:'香蕉（可食部）',icon:'🍌',kcal:89,p:1.1,c:22.8,f:0.3,purine:'low',basis:'每100g可食部',source_name:'USDA FoodData Central'},
+    {id:'apple',name:'苹果（带皮，可食部）',icon:'🍎',kcal:52,p:0.3,c:13.8,f:0.2,purine:'low',basis:'每100g可食部',source_name:'USDA FoodData Central'}
   ];
+  let foods = fallbackFoods.slice();
+
+  function loadFoodCatalog() {
+    try {
+      if (window.FitBridge && typeof FitBridge.getFoodCatalogJson === 'function') {
+        const rows = JSON.parse(FitBridge.getFoodCatalogJson() || '[]');
+        if (Array.isArray(rows) && rows.length) {
+          foods = rows;
+          return true;
+        }
+      }
+    } catch (e) {}
+    foods = fallbackFoods.slice();
+    return false;
+  }
+
 
   const baseExerciseTypes = [
     {id:'walk',label:'走路',icon:'🚶',met:3.5,category:'exercise'},
@@ -257,11 +261,25 @@
   let iosStepCache = null;
 
   window.FitNative = window.FitNative || {};
+  let androidStepCache = null;
+  let androidStepConfidence = '';
+
   window.FitNative.receiveSteps = function(value) {
     const n = Number(value);
     if (Number.isFinite(n) && n >= 0) {
       iosStepCache = n;
       try { renderSteps(); renderHome(); } catch (e) {}
+    }
+  };
+
+  window.FitNative.receiveAndroidSteps = function(value, source, confidence) {
+    const n = Number(value);
+    if (Number.isFinite(n) && n >= 0) {
+      androidStepCache = n;
+      androidStepConfidence = String(confidence || '');
+      state.stepHistory[today()] = n;
+      save();
+      try { renderSteps(); renderHome(); renderReport(); } catch (e) {}
     }
   };
 
@@ -374,11 +392,23 @@
       if (window.FitBridge && typeof FitBridge.getTodaySteps === 'function') {
         const n = Number(FitBridge.getTodaySteps());
         if (n >= 0) {
-          el('stepSource').textContent = 'Android 步数传感器';
+          androidStepCache = n;
+          let status = null;
+          try {
+            if (typeof FitBridge.getStepStatusJson === 'function') {
+              status = JSON.parse(FitBridge.getStepStatusJson() || '{}');
+            }
+          } catch (e) {}
+          const conf = status && status.confidence ? status.confidence : androidStepConfidence;
+          const suffix = conf === 'sensor_delta' ? '实时累计' :
+            conf === 'first_baseline' ? '首次基线' :
+            conf && conf.indexOf('cross_day') >= 0 ? '跨日估算' :
+            conf && conf.indexOf('reboot') >= 0 ? '重启后估算' : '传感器';
+          el('stepSource').textContent = 'Android TYPE_STEP_COUNTER · ' + suffix;
           return n;
         }
-        if (n === -2) el('stepSource').textContent = '需要活动识别权限';
-        else el('stepSource').textContent = '设备无步数传感器';
+        if (n === -2) el('stepSource').textContent = '需要活动识别权限，点击下方授权';
+        else el('stepSource').textContent = '设备没有 TYPE_STEP_COUNTER，使用手动步数';
       } else if (postIosNative('getTodaySteps')) {
         el('stepSource').textContent = iosStepCache == null ? 'iOS 步数读取中' : 'iOS Core Motion';
         if (iosStepCache != null) return iosStepCache;
@@ -389,6 +419,22 @@
       el('stepSource').textContent = '手动步数';
     }
     return manual;
+  }
+
+  function loadNativeStepHistory(days) {
+    try {
+      if (window.FitBridge && typeof FitBridge.getStepHistoryJson === 'function') {
+        const rows = JSON.parse(FitBridge.getStepHistoryJson(Number(days || 30)) || '[]');
+        if (Array.isArray(rows)) {
+          rows.forEach(x => {
+            if (x && x.date) state.stepHistory[x.date] = Number(x.steps || 0);
+          });
+          save();
+          return rows;
+        }
+      }
+    } catch (e) {}
+    return [];
   }
 
   function stepCalories(steps) {
@@ -705,6 +751,9 @@
     const n = calcFood(food, grams);
     const risk = renderFoodRiskPanel(food);
     let text = round(n.kcal) + ' kcal · 蛋白 ' + round(n.p,1) + 'g · 碳水 ' + round(n.c,1) + 'g · 脂肪 ' + round(n.f,1) + 'g';
+    if (food.basis) text += ' ｜ 基准：' + food.basis;
+    if (food.source_name) text += ' ｜ 来源：' + food.source_name;
+    if (food.source_note) text += ' ｜ ' + food.source_note;
     if (state.profile.diabetes && n.c >= 30) text += ' ｜ 本份碳水约 ' + round(n.c,1) + 'g';
     if (risk.status && risk.status !== 'neutral') text += ' ｜ ' + riskIcon(risk.status) + ' 疾病联动';
     el('foodEstimate').textContent = text;
@@ -1036,6 +1085,7 @@
   }
 
   function reportAggregate(days) {
+    loadNativeStepHistory(days);
     const food = state.foodLogs.filter(x => inLastDays(x.date,days));
     const exercise = state.exerciseLogs.filter(x => inLastDays(x.date,days));
     const behavior = state.behaviorLogs.filter(x => inLastDays(x.date,days));
@@ -1457,6 +1507,7 @@
   }
 
   renderDate();
+  loadFoodCatalog();
   renderFoodControls();
   renderExerciseTypes();
   handlePhotoInput();
