@@ -37,6 +37,7 @@ jobs:
           for p in [
               'fitbalance-android/app/src/main/assets/zhuangzi_seed.json',
               'fitbalance-android/app/src/main/assets/health_rules_seed.json',
+              'fitbalance-android/app/src/main/assets/food_core_seed.json',
               'fitbalance-android/app/src/main/assets/api-config.json',
           ]:
               with open(p, 'r', encoding='utf-8') as f:
@@ -76,7 +77,7 @@ jobs:
       - name: Upload validation APK
         uses: actions/upload-artifact@v4
         with:
-          name: FitBalance-v1.5.0-validation-debug
+          name: FitBalance-v1.6.0-validation-debug
           path: fitbalance-android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 14
@@ -110,8 +111,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          if gh release view fitbalance-v1.5.0 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            echo "fitbalance-v1.5.0 already exists. Historical releases are immutable."
+          if gh release view fitbalance-v1.6.0 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "fitbalance-v1.6.0 already exists. Historical releases are immutable."
             exit 1
           fi
 
@@ -148,21 +149,21 @@ jobs:
           export ANDROID_HOME="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
           export ANDROID_SDK_ROOT="$ANDROID_HOME"
           gradle -p fitbalance-android :app:assembleRelease --no-daemon --stacktrace
-          cp fitbalance-android/app/build/outputs/apk/release/app-release.apk FitBalance-Standalone-v1.5.0.apk
+          cp fitbalance-android/app/build/outputs/apk/release/app-release.apk FitBalance-Standalone-v1.6.0.apk
 
       - name: Verify APK signature and create audit metadata
         shell: bash
         run: |
           export ANDROID_HOME="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs FitBalance-Standalone-v1.5.0.apk | tee signing-report.txt
-          sha256sum FitBalance-Standalone-v1.5.0.apk | tee apk-sha256.txt
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs FitBalance-Standalone-v1.6.0.apk | tee signing-report.txt
+          sha256sum FitBalance-Standalone-v1.6.0.apk | tee apk-sha256.txt
           {
-            echo "Version: 1.5.0"
-            echo "Version code: 6"
+            echo "Version: 1.6.0"
+            echo "Version code: 7"
             echo "Commit SHA: $GITHUB_SHA"
-            echo "Database schemaVersion: 3"
+            echo "Database schemaVersion: 4"
             echo "Rule version: 1"
-            echo "Content version: 1"
+            echo "Content version: 2"
             echo "Evidence version: 1"
             echo "Built: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
           } | tee release-metadata.txt
@@ -170,9 +171,9 @@ jobs:
       - name: Upload signed release artifact
         uses: actions/upload-artifact@v4
         with:
-          name: FitBalance-v1.5.0-stable-signed
+          name: FitBalance-v1.6.0-stable-signed
           path: |
-            FitBalance-Standalone-v1.5.0.apk
+            FitBalance-Standalone-v1.6.0.apk
             signing-report.txt
             apk-sha256.txt
             release-metadata.txt
@@ -184,4 +185,4 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          gh release create fitbalance-v1.5.0             FitBalance-Standalone-v1.5.0.apk             signing-report.txt             apk-sha256.txt             release-metadata.txt             --repo "$GITHUB_REPOSITORY"             --target "$GITHUB_SHA"             --title "动衡 FitBalance v1.5.0 稳定签名与迁移基础版"             --notes "v1.5.0 建立长期稳定签名、不可覆盖历史 Release、SQLite schema v3 非破坏迁移、版本审计。注意：v1.0.0-v1.4.0 为云端 debug 签名，无法保证与新的长期 release key 原地覆盖升级；从 v1.5.0 开始使用同一 release key 后，后续版本可按正常 Android 升级链演进。"
+          gh release create fitbalance-v1.6.0             FitBalance-Standalone-v1.6.0.apk             signing-report.txt             apk-sha256.txt             release-metadata.txt             --repo "$GITHUB_REPOSITORY"             --target "$GITHUB_SHA"             --title "动衡 FitBalance v1.6.0 数据底层修复版"             --notes "v1.6.0：SQLite schema v4；食物营养改为本地数据库并区分生重/熟重与数据来源；Android TYPE_STEP_COUNTER 改为持久化累积差值计步并实时推送 UI；步数历史进入 SQLite。历史 Release 不覆盖。"
