@@ -279,7 +279,7 @@
       androidStepConfidence = String(confidence || '');
       state.stepHistory[today()] = n;
       save();
-      try { renderSteps(); renderHome(); renderReport(); } catch (e) {}
+      try { renderSteps(); renderHome(); renderReport(); syncTodayMetricsToNative(); } catch (e) {}
     }
   };
 
@@ -1185,6 +1185,47 @@
     el('reportInsights').innerHTML=insights.map(x=>'<div class="report-insight '+x.c+'">'+x.t+'</div>').join('');
   }
 
+  function syncTodayMetricsToNative() {
+    try {
+      if (!(window.FitBridge && typeof FitBridge.upsertDailyMetricsJson === 'function')) return;
+      const n = sumNutrition(todayFood());
+      const a = activityBurn();
+      const ex = todayExercise();
+      const b = todayBehavior();
+      const meditationMin = ex.filter(x => {
+        const def = allExerciseTypes().find(t => t.id === x.type);
+        return (x.category || (def && def.category)) === 'meditation';
+      }).reduce((sum,x)=>sum+Number(x.min||0),0);
+      const exerciseMin = ex.reduce((sum,x)=>sum+Number(x.min||0),0);
+      const alcohol = ethanolGrams(b.beerMl,b.beerAbv) + ethanolGrams(b.baijiuMl,b.baijiuAbv);
+      const redFoodCount = todayFood().filter(x => {
+        if (x.riskStatus) return x.riskStatus === 'red';
+        return x.foodId ? evaluateFoodRisk(x.foodId).status === 'red' : false;
+      }).length;
+      const latestWeight = state.weightLogs
+        .filter(x=>x.date<=today())
+        .slice()
+        .sort((x,y)=>x.date.localeCompare(y.date))
+        .slice(-1)[0];
+      FitBridge.upsertDailyMetricsJson(JSON.stringify({
+        date: today(),
+        intakeKcal: n.kcal,
+        proteinG: n.p,
+        carbsG: n.c,
+        fatG: n.f,
+        steps: a.steps,
+        activityKcal: a.total,
+        exerciseMin,
+        meditationMin,
+        weightKg: latestWeight ? Number(latestWeight.weight) : Number(state.profile.weight || 0),
+        cigarettes: Number(b.cigarettes || 0),
+        alcoholG: alcohol,
+        lateHours: Number(b.lateHours || 0),
+        redFoodCount
+      }));
+    } catch (e) {}
+  }
+
   function renderVersionAudit() {
     if (!el('auditAppVersion')) return;
     let audit = null;
@@ -1236,6 +1277,7 @@
     renderFoodControls();
     renderReport();
     renderVersionAudit();
+    syncTodayMetricsToNative();
   }
 
   function bind() {
