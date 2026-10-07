@@ -20,7 +20,7 @@ import java.util.Locale;
 
 public class FitDatabase extends SQLiteOpenHelper {
     private static final String DB_NAME = "fitbalance.db";
-    private static final int DB_VERSION = 3;
+    private static final int DB_VERSION = 4;
     private static final int ZHUANGZI_TOTAL_DAYS = 30;
     private final Context context;
     private final String appVersion;
@@ -48,6 +48,7 @@ public class FitDatabase extends SQLiteOpenHelper {
         this.evidenceVersion = evidenceVersion;
         ensureZhuangziSeeded();
         ensureHealthRulesSeeded();
+        ensureFoodSeeded();
         ensureStartDate();
         ensureAuditTables();
         recordInstalledVersion();
@@ -57,6 +58,8 @@ public class FitDatabase extends SQLiteOpenHelper {
     public void onCreate(SQLiteDatabase db) {
         createCoreTables(db);
         createHealthRuleTables(db);
+        createFoodTables(db);
+        createStepTables(db);
         createAuditTables(db);
     }
 
@@ -135,6 +138,58 @@ public class FitDatabase extends SQLiteOpenHelper {
 
         db.execSQL("CREATE INDEX IF NOT EXISTS idx_food_rules_food ON food_disease_rules(food_id)");
         db.execSQL("CREATE INDEX IF NOT EXISTS idx_food_rules_disease ON food_disease_rules(disease)");
+    }
+
+    private void createFoodTables(SQLiteDatabase db) {
+        db.execSQL(
+                "CREATE TABLE IF NOT EXISTS food_sources (" +
+                        "id TEXT PRIMARY KEY," +
+                        "name TEXT NOT NULL," +
+                        "region TEXT," +
+                        "kind TEXT," +
+                        "license_note TEXT," +
+                        "url TEXT," +
+                        "content_version INTEGER NOT NULL DEFAULT 1" +
+                        ")"
+        );
+
+        db.execSQL(
+                "CREATE TABLE IF NOT EXISTS foods (" +
+                        "id TEXT PRIMARY KEY," +
+                        "name TEXT NOT NULL," +
+                        "icon TEXT," +
+                        "category TEXT," +
+                        "state TEXT," +
+                        "basis TEXT NOT NULL," +
+                        "kcal REAL NOT NULL," +
+                        "protein REAL NOT NULL," +
+                        "carbs REAL NOT NULL," +
+                        "fat REAL NOT NULL," +
+                        "fiber REAL," +
+                        "sodium REAL," +
+                        "purine TEXT," +
+                        "source_id TEXT NOT NULL," +
+                        "source_note TEXT," +
+                        "content_version INTEGER NOT NULL DEFAULT 1" +
+                        ")"
+        );
+
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_foods_category ON foods(category)");
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_foods_source ON foods(source_id)");
+    }
+
+    private void createStepTables(SQLiteDatabase db) {
+        db.execSQL(
+                "CREATE TABLE IF NOT EXISTS daily_steps (" +
+                        "date TEXT PRIMARY KEY," +
+                        "steps INTEGER NOT NULL DEFAULT 0," +
+                        "source TEXT NOT NULL," +
+                        "confidence TEXT NOT NULL," +
+                        "raw_counter REAL," +
+                        "boot_id TEXT," +
+                        "updated_at TEXT NOT NULL" +
+                        ")"
+        );
     }
 
     private void createAuditTables(SQLiteDatabase db) {
@@ -219,6 +274,17 @@ public class FitDatabase extends SQLiteOpenHelper {
             migration.put("to_version", 3);
             migration.put("migrated_at", new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", Locale.US).format(new Date()));
             migration.put("notes", "Add immutable release and migration audit tables; existing user data preserved.");
+            db.insert("migration_audit", null, migration);
+        }
+
+        if (oldVersion < 4) {
+            createFoodTables(db);
+            createStepTables(db);
+            ContentValues migration = new ContentValues();
+            migration.put("from_version", Math.max(from, 3));
+            migration.put("to_version", 4);
+            migration.put("migrated_at", new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", Locale.US).format(new Date()));
+            migration.put("notes", "Add source-aware food catalog and native daily step ledger; existing data preserved.");
             db.insert("migration_audit", null, migration);
         }
     }
@@ -343,6 +409,71 @@ public class FitDatabase extends SQLiteOpenHelper {
             }
         } catch (Exception e) {
             throw new RuntimeException("Failed to seed health rules", e);
+        }
+    }
+
+    private void ensureFoodSeeded() {
+        SQLiteDatabase db = getWritableDatabase();
+        createFoodTables(db);
+
+        String current = getMeta(db, "food_content_version");
+        try {
+            JSONObject root = new JSONObject(readAsset("food_core_seed.json"));
+            int version = root.optInt("version", 1);
+            if (String.valueOf(version).equals(current)) return;
+
+            db.beginTransaction();
+            try {
+                db.delete("foods", null, null);
+                db.delete("food_sources", null, null);
+
+                JSONArray sources = root.getJSONArray("sources");
+                for (int i = 0; i < sources.length(); i++) {
+                    JSONObject o = sources.getJSONObject(i);
+                    ContentValues v = new ContentValues();
+                    v.put("id", o.getString("id"));
+                    v.put("name", o.getString("name"));
+                    v.put("region", o.optString("region", ""));
+                    v.put("kind", o.optString("kind", ""));
+                    v.put("license_note", o.optString("license_note", ""));
+                    v.put("url", o.optString("url", ""));
+                    v.put("content_version", version);
+                    db.insertOrThrow("food_sources", null, v);
+                }
+
+                JSONArray foods = root.getJSONArray("foods");
+                for (int i = 0; i < foods.length(); i++) {
+                    JSONObject o = foods.getJSONObject(i);
+                    ContentValues v = new ContentValues();
+                    v.put("id", o.getString("id"));
+                    v.put("name", o.getString("name"));
+                    v.put("icon", o.optString("icon", ""));
+                    v.put("category", o.optString("category", ""));
+                    v.put("state", o.optString("state", ""));
+                    v.put("basis", o.optString("basis", "每100g"));
+                    v.put("kcal", o.optDouble("kcal", 0));
+                    v.put("protein", o.optDouble("p", 0));
+                    v.put("carbs", o.optDouble("c", 0));
+                    v.put("fat", o.optDouble("f", 0));
+                    if (!o.isNull("fiber")) v.put("fiber", o.optDouble("fiber", 0));
+                    if (!o.isNull("sodium")) v.put("sodium", o.optDouble("sodium", 0));
+                    v.put("purine", o.optString("purine", ""));
+                    v.put("source_id", o.getString("source_id"));
+                    v.put("source_note", o.optString("source_note", ""));
+                    v.put("content_version", version);
+                    db.insertOrThrow("foods", null, v);
+                }
+
+                ContentValues meta = new ContentValues();
+                meta.put("key", "food_content_version");
+                meta.put("value", String.valueOf(version));
+                db.insertWithOnConflict("app_meta", null, meta, SQLiteDatabase.CONFLICT_REPLACE);
+                db.setTransactionSuccessful();
+            } finally {
+                db.endTransaction();
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to seed food catalog", e);
         }
     }
 
@@ -504,6 +635,81 @@ public class FitDatabase extends SQLiteOpenHelper {
         } catch (Exception e) {
             return null;
         }
+    }
+
+    public String getFoodCatalogJson() {
+        JSONArray out = new JSONArray();
+        SQLiteDatabase db = getReadableDatabase();
+        try (Cursor c = db.rawQuery(
+                "SELECT f.id,f.name,f.icon,f.category,f.state,f.basis,f.kcal,f.protein,f.carbs,f.fat," +
+                        "f.fiber,f.sodium,f.purine,f.source_id,f.source_note,s.name,s.region,s.url " +
+                        "FROM foods f LEFT JOIN food_sources s ON f.source_id=s.id ORDER BY f.category,f.name",
+                null)) {
+            while (c.moveToNext()) {
+                JSONObject o = new JSONObject();
+                o.put("id", c.getString(0));
+                o.put("name", c.getString(1));
+                o.put("icon", c.getString(2));
+                o.put("category", c.getString(3));
+                o.put("state", c.getString(4));
+                o.put("basis", c.getString(5));
+                o.put("kcal", c.getDouble(6));
+                o.put("p", c.getDouble(7));
+                o.put("c", c.getDouble(8));
+                o.put("f", c.getDouble(9));
+                if (!c.isNull(10)) o.put("fiber", c.getDouble(10)); else o.put("fiber", JSONObject.NULL);
+                if (!c.isNull(11)) o.put("sodium", c.getDouble(11)); else o.put("sodium", JSONObject.NULL);
+                o.put("purine", c.getString(12));
+                o.put("source_id", c.getString(13));
+                o.put("source_note", c.getString(14));
+                o.put("source_name", c.getString(15));
+                o.put("source_region", c.getString(16));
+                o.put("source_url", c.getString(17));
+                out.put(o);
+            }
+        } catch (Exception ignored) {
+        }
+        return out.toString();
+    }
+
+    public void upsertDailySteps(
+            String date,
+            int steps,
+            String source,
+            String confidence,
+            float rawCounter,
+            String bootId) {
+        SQLiteDatabase db = getWritableDatabase();
+        ContentValues v = new ContentValues();
+        v.put("date", date);
+        v.put("steps", Math.max(0, steps));
+        v.put("source", source == null ? "sensor" : source);
+        v.put("confidence", confidence == null ? "estimated" : confidence);
+        v.put("raw_counter", rawCounter);
+        v.put("boot_id", bootId == null ? "" : bootId);
+        v.put("updated_at", nowIso());
+        db.insertWithOnConflict("daily_steps", null, v, SQLiteDatabase.CONFLICT_REPLACE);
+    }
+
+    public String getStepHistoryJson(int days) {
+        JSONArray out = new JSONArray();
+        SQLiteDatabase db = getReadableDatabase();
+        int limit = Math.max(1, Math.min(days, 366));
+        try (Cursor c = db.rawQuery(
+                "SELECT date,steps,source,confidence,updated_at FROM daily_steps ORDER BY date DESC LIMIT ?",
+                new String[]{String.valueOf(limit)})) {
+            while (c.moveToNext()) {
+                JSONObject o = new JSONObject();
+                o.put("date", c.getString(0));
+                o.put("steps", c.getInt(1));
+                o.put("source", c.getString(2));
+                o.put("confidence", c.getString(3));
+                o.put("updated_at", c.getString(4));
+                out.put(o);
+            }
+        } catch (Exception ignored) {
+        }
+        return out.toString();
     }
 
     public String getVersionAuditJson() {
