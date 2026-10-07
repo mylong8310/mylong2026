@@ -1,0 +1,57 @@
+plugins {
+    id 'com.android.application'
+}
+
+def releaseStorePath = System.getenv('FITBALANCE_KEYSTORE_PATH')
+def gitSha = System.getenv('FITBALANCE_GIT_SHA') ?: 'local'
+
+android {
+    namespace 'com.fitbalance.app'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'com.fitbalance.app'
+        minSdk 23
+        targetSdk 35
+        versionCode 7
+        versionName '1.6.0'
+
+        buildConfigField 'String', 'GIT_SHA', '"' + gitSha + '"'
+        buildConfigField 'String', 'RULE_VERSION', '"1"'
+        buildConfigField 'String', 'CONTENT_VERSION', '"2"'
+        buildConfigField 'String', 'EVIDENCE_VERSION', '"1"'
+        buildConfigField 'int', 'SCHEMA_VERSION', '4'
+    }
+
+    buildFeatures {
+        buildConfig true
+    }
+
+    signingConfigs {
+        release {
+            if (releaseStorePath) {
+                storeFile file(releaseStorePath)
+                storePassword System.getenv('FITBALANCE_KEYSTORE_PASSWORD')
+                keyAlias System.getenv('FITBALANCE_KEY_ALIAS')
+                keyPassword System.getenv('FITBALANCE_KEY_PASSWORD')
+            }
+        }
+    }
+
+    buildTypes {
+        debug {
+            debuggable true
+        }
+        release {
+            debuggable false
+            minifyEnabled false
+            if (releaseStorePath) {
+                signingConfig signingConfigs.release
+            }
+        }
+    }
+}
+
+dependencies {
+    implementation 'androidx.core:core:1.15.0'
+}

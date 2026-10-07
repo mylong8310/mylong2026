@@ -1,0 +1,13 @@
+{
+  "enabled": false,
+  "base_url": "",
+  "api_version": "v1",
+  "features": {
+    "content_sync": false,
+    "rule_sync": false,
+    "cloud_backup": false,
+    "food_photo_ai": false,
+    "health_analysis_ai": false
+  },
+  "local_first": true
+}

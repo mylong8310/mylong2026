@@ -1,0 +1,501 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0d1410">
+<title>动衡 FitBalance</title>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<div class="app">
+<header>
+  <div><div class="brand">动<b>衡</b></div><div class="sub">运动 · 营养 · 恢复 · 体重管理</div></div>
+  <div class="date" id="dateText"></div>
+</header>
+
+<section id="home" class="page on">
+  <div class="hero">
+    <div class="hero-top">
+      <div>
+        <h1>今日能量平衡</h1>
+        <p id="heroHint">记录摄入与运动，关注长期趋势，不追求单日“完美数字”。</p>
+      </div>
+      <div class="big-balance"><strong id="balanceKcal">0</strong><small>净摄入 kcal</small></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="grid3">
+      <div class="stat"><div class="k">摄入</div><div class="v"><span id="homeIntake">0</span><span class="u"> kcal</span></div></div>
+      <div class="stat"><div class="k">活动消耗</div><div class="v"><span id="homeBurn">0</span><span class="u"> kcal</span></div></div>
+      <div class="stat"><div class="k">步数</div><div class="v"><span id="homeSteps">0</span><span class="u"> 步</span></div></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><h2>今日宏量营养</h2><span id="macroGoalLabel">基于当前资料估算</span></div>
+    <div class="grid2">
+      <div class="macro"><div class="macro-head"><span>蛋白质</span><span><strong id="proteinNow">0</strong> / <span id="proteinGoal">0</span> g</span></div><div class="progress"><div class="bar" id="proteinBar"></div></div></div>
+      <div class="macro"><div class="macro-head"><span>碳水</span><span><strong id="carbNow">0</strong> / <span id="carbGoal">0</span> g</span></div><div class="progress"><div class="bar" id="carbBar"></div></div></div>
+    </div>
+  </div>
+
+  <div class="section" id="fastingHomeWrap">
+    <div class="section-title"><h2>16:8 饮食窗口</h2><span>可在“我的”关闭</span></div>
+    <div class="card fasting">
+      <div><div class="status" id="fastStatus">未开启</div><div class="time" id="fastWindow"></div></div>
+      <div class="countdown" id="fastCountdown">--:--</div>
+    </div>
+    <div id="fastWarning"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><h2>健康模式提醒</h2><span>仅作教育提示</span></div>
+    <div id="conditionAlerts"></div>
+  </div>
+
+  <div class="section" id="emergencySection">
+    <div class="section-title"><h2>紧急联系</h2><span>心脑血管高风险快捷入口</span></div>
+    <div class="card emergency-card">
+      <div class="emergency-top">
+        <div><div class="emergency-kicker">ICE · In Case of Emergency</div><h3>胸痛、呼吸困难或疑似卒中时优先呼叫急救</h3></div>
+        <button class="sos-btn" id="call120Btn" type="button">☎ 120</button>
+      </div>
+      <div class="emergency-grid" id="emergencyContactButtons"></div>
+      <div class="emergency-signs">
+        <div><b>心梗/急性冠脉综合征常见警讯</b><span>胸部压迫/疼痛、气短、恶心或头晕、下颌/颈/背痛、手臂或肩部不适等。</span></div>
+        <div><b>卒中 B.E.F.A.S.T.</b><span>平衡异常、视力变化、面歪、手臂无力、言语异常 → 立即求助并记录症状开始时间。</span></div>
+      </div>
+      <div class="note">中国大陆院前医疗急救号码为 120。第三方 App 会交给系统电话界面处理，系统可能要求一次确认。</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><h2>今日负 Buff</h2><span>行为负荷 · 非临床风险评分</span></div>
+    <div class="card">
+      <div class="between">
+        <div>
+          <div class="note">把吸烟、酒精和熬夜当成可减少的负荷，而不是“赚到运动量就能抵消”。</div>
+          <div class="buff-chips" id="buffChips"></div>
+        </div>
+        <div class="buff-score"><strong id="buffScore">0</strong><small>/100</small></div>
+      </div>
+      <div class="buff-meter"><i id="buffMeter"></i></div>
+      <div class="note" id="buffSummary" style="margin-top:10px"></div>
+      <div class="mini-trend" id="behaviorTrend"></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><h2>今日庄子</h2><span id="zhuangziHomeProgress">30 日离线养心</span></div>
+    <div class="card zhuangzi-home" id="zhuangziHomeCard">
+      <div class="zhuangzi-badge" id="zhuangziHomeDay">第 1 天</div>
+      <div class="zhuangzi-home-title" id="zhuangziHomeTitle">正在读取本地内容…</div>
+      <div class="zhuangzi-home-quote" id="zhuangziHomeQuote"></div>
+      <div class="note" id="zhuangziHomeAction"></div>
+      <button class="btn secondary" id="openZhuangziBtn" type="button" style="width:100%;margin-top:12px">进入 30 日养心模块</button>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><h2>身体趋势</h2><span id="bmiLabel">BMI --</span></div>
+    <div class="card">
+      <div class="grid3">
+        <div class="stat"><div class="k">体重</div><div class="v"><span id="homeWeight">--</span><span class="u"> kg</span></div></div>
+        <div class="stat"><div class="k">估算 TDEE</div><div class="v"><span id="homeTdee">--</span><span class="u"> kcal</span></div></div>
+        <div class="stat"><div class="k">目标热量</div><div class="v"><span id="homeCalGoal">--</span><span class="u"> kcal</span></div></div>
+      </div>
+      <div class="chart" id="weightChart"></div>
+    </div>
+  </div>
+</section>
+
+<section id="nutrition" class="page">
+  <div class="section">
+    <div class="section-title"><h2>营养摄入</h2><span id="nutritionSummary">今日 0 kcal</span></div>
+    <div class="card">
+      <div class="quick-foods" id="quickFoods"></div>
+      <div class="food-risk-panel neutral" id="foodRiskPanel">
+        <div class="food-risk-dot" id="foodRiskDot"></div>
+        <div><b id="foodRiskTitle">当前未启用疾病联动</b><div class="note" id="foodRiskReason">在“我的 → 健康模式”开启疾病后，食物会按红 / 黄 / 绿联动。</div></div>
+      </div>
+      <div class="field-grid">
+        <div class="field"><label>食物</label><select id="foodSelect"></select></div>
+        <div class="field"><label>重量（克）</label><input id="foodGram" type="number" inputmode="decimal" value="100" min="1"></div>
+      </div>
+      <div class="between" style="margin-top:12px">
+        <div class="note" id="foodEstimate">选择食物后显示估算营养</div>
+        <button class="btn" id="addFoodBtn">记入今日</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><h2>拍照估算</h2><span>本地隐私模式</span></div>
+    <div class="card">
+      <div class="photo-box">
+        <img id="mealPhoto" alt="食物照片">
+        <div class="photo-placeholder" id="photoPlaceholder"><b>📷 拍照或选择食物图片</b>照片仅保存在当前设备，不自动上传。</div>
+        <input class="photo-input" id="photoInput" type="file" accept="image/*" capture="environment">
+      </div>
+      <div class="alert" style="margin-top:12px">当前独立版采用“拍照记录 + 选择/校正食物和份量 + 自动计算营养”的方式。真正的图像 AI 自动识别需要安全云端模型；为了不把 API 密钥写进 APK，本版不会伪装成自动识别。</div>
+      <div class="field-grid">
+        <div class="field"><label>照片中的食物</label><select id="photoFoodSelect"></select></div>
+        <div class="field"><label>估算重量（克）</label><input id="photoFoodGram" type="number" value="100" min="1"></div>
+      </div>
+      <div class="between" style="margin-top:12px">
+        <div class="note" id="photoEstimate">选择食物和份量</div>
+        <button class="btn secondary" id="addPhotoFoodBtn">加入餐盘</button>
+      </div>
+      <div class="dish-components" id="dishComponents"></div>
+      <div class="between" style="margin-top:12px"><div class="note" id="dishTotal"></div><button class="btn" id="saveDishBtn">保存这餐</button></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><h2>今日饮食记录</h2><span>可删除误记</span></div>
+    <div class="card list" id="foodLog"></div>
+  </div>
+</section>
+
+<section id="activity" class="page">
+  <div class="section">
+    <div class="section-title"><h2>步数计数器</h2><span id="stepSource">读取手机传感器</span></div>
+    <div class="card">
+      <div class="steps-ring" id="stepsRing"><div class="inside"><strong id="stepsValue">0</strong><small>今日步数</small></div></div>
+      <div class="grid2" style="margin-top:14px">
+        <div class="stat"><div class="k">步行估算消耗</div><div class="v"><span id="stepKcal">0</span><span class="u"> kcal</span></div></div>
+        <div class="stat"><div class="k">步数目标</div><div class="v"><span id="stepGoalText">8000</span><span class="u"> 步</span></div></div>
+      </div>
+      <div class="field-grid">
+        <div class="field"><label>手动步数（无传感器时）</label><input id="manualSteps" type="number" inputmode="numeric" min="0"></div>
+        <div class="field" style="display:flex;align-items:end"><button class="btn secondary" id="saveManualStepsBtn" style="width:100%">保存/刷新步数</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><h2>记录运动</h2><span>按 MET 粗略估算消耗</span></div>
+    <div class="card">
+      <div class="exercise-type" id="exerciseTypes"></div>
+      <div class="custom-activity-bar">
+        <button class="btn ghost" id="toggleCustomActivityBtn" type="button">＋ 自定义运动 / 冥想</button>
+        <span class="note">自定义项目只保存在本机</span>
+      </div>
+      <div class="custom-activity-form" id="customActivityForm">
+        <div class="field-grid">
+          <div class="field"><label>项目名称</label><input id="customActivityName" placeholder="例如：八段锦 / 冥想 / 爬楼梯"></div>
+          <div class="field"><label>类型</label><select id="customActivityCategory"><option value="exercise">运动</option><option value="meditation">冥想/呼吸</option><option value="mobility">拉伸/活动度</option></select></div>
+          <div class="field"><label>MET（可选）</label><input id="customActivityMet" type="number" step="0.1" min="1" max="20" placeholder="不填自动给参考值"></div>
+          <div class="field"><label>图标</label><input id="customActivityIcon" maxlength="4" placeholder="例如 🧘"></div>
+        </div>
+        <button class="btn secondary" id="saveCustomActivityBtn" type="button" style="width:100%;margin-top:10px">保存自定义项目</button>
+      </div>
+      <div class="field-grid">
+        <div class="field"><label>时长（分钟）</label><input id="exerciseMin" type="number" value="30" min="1"></div>
+        <div class="field"><label>备注</label><input id="exerciseNote" placeholder="例如：5km、腿部训练"></div>
+      </div>
+      <div class="between" style="margin-top:12px"><div class="note" id="exerciseEstimate">约 0 kcal</div><button class="btn" id="addExerciseBtn">记录运动</button></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><h2>今日运动记录</h2><span id="activityKcalLabel">0 kcal</span></div>
+    <div class="card list" id="exerciseLog"></div>
+  </div>
+
+  <div class="section">
+    <div class="card">
+      <div class="note"><b style="color:#e8f0ea">成人一般活动参考：</b>WHO 建议每周 150–300 分钟中等强度有氧，或 75–150 分钟高强度有氧，并在每周至少 2 天进行主要肌群力量训练。慢性病患者应根据自身情况调整。</div>
+    </div>
+  </div>
+</section>
+
+<section id="recovery" class="page">
+  <div class="section">
+    <div class="section-title"><h2>肌肉恢复</h2><span>训练后恢复状态</span></div>
+    <div class="alert">恢复提示依据“距离上次训练时间 + 主观酸痛程度”做粗略分级，不代表组织已经完全恢复。高强度训练、疼痛、肿胀或功能受限时要更谨慎。</div>
+    <div class="muscle-grid" id="muscleGrid" style="margin-top:10px"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><h2>训练就绪度曲线</h2><span>本地估算 · 非医学诊断</span></div>
+    <div class="card recovery-glass">
+      <div class="body-recovery-layout">
+        <div class="body-map-wrap">
+          <div class="body-toggle">
+            <button class="body-side on" data-side="front">正面</button>
+            <button class="body-side" data-side="back">背面</button>
+          </div>
+          <svg class="body-map" id="bodyMap" viewBox="0 0 220 430" aria-label="人体肌肉区域">
+            <defs>
+              <linearGradient id="bodyShell" x1="0" x2="1"><stop offset="0" stop-color="#26362c"/><stop offset="1" stop-color="#111914"/></linearGradient>
+              <filter id="softGlow"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+            </defs>
+            <g id="bodyFront" class="body-side-layer on">
+              <ellipse cx="110" cy="40" rx="25" ry="29" class="body-shell"/>
+              <path d="M90 70 Q110 62 130 70 L143 150 Q138 194 128 230 L135 392 Q130 417 115 417 L108 260 L101 417 Q85 417 82 392 L92 230 Q82 194 77 150 Z" class="body-shell"/>
+              <path data-muscle="chest" d="M86 88 Q110 72 134 88 L131 130 Q110 143 89 130 Z" class="muscle-zone"/>
+              <path data-muscle="shoulders" d="M77 87 Q61 93 58 117 L76 124 L88 91 Z M143 87 Q159 93 162 117 L144 124 L132 91 Z" class="muscle-zone"/>
+              <path data-muscle="arms" d="M59 118 L77 125 L72 211 L55 205 Z M161 118 L143 125 L148 211 L165 205 Z" class="muscle-zone"/>
+              <path data-muscle="core" d="M93 137 L127 137 L128 228 L92 228 Z" class="muscle-zone"/>
+              <path data-muscle="legs" d="M82 233 L105 233 L101 390 L82 390 Z M115 233 L138 233 L138 390 L119 390 Z" class="muscle-zone"/>
+            </g>
+            <g id="bodyBack" class="body-side-layer">
+              <ellipse cx="110" cy="40" rx="25" ry="29" class="body-shell"/>
+              <path d="M90 70 Q110 62 130 70 L143 150 Q138 194 128 230 L135 392 Q130 417 115 417 L108 260 L101 417 Q85 417 82 392 L92 230 Q82 194 77 150 Z" class="body-shell"/>
+              <path data-muscle="back" d="M86 82 Q110 72 134 82 L137 160 Q110 180 83 160 Z" class="muscle-zone"/>
+              <path data-muscle="shoulders" d="M77 87 Q61 93 58 117 L76 124 L88 91 Z M143 87 Q159 93 162 117 L144 124 L132 91 Z" class="muscle-zone"/>
+              <path data-muscle="arms" d="M59 118 L77 125 L72 211 L55 205 Z M161 118 L143 125 L148 211 L165 205 Z" class="muscle-zone"/>
+              <path data-muscle="core" d="M93 166 L127 166 L128 228 L92 228 Z" class="muscle-zone"/>
+              <path data-muscle="legs" d="M82 233 L105 233 L101 390 L82 390 Z M115 233 L138 233 L138 390 L119 390 Z" class="muscle-zone"/>
+            </g>
+          </svg>
+          <div class="body-legend"><span><i class="lg green"></i>就绪</span><span><i class="lg yellow"></i>恢复中</span><span><i class="lg red"></i>优先恢复</span></div>
+        </div>
+
+        <div class="recovery-detail">
+          <div class="between"><div><div class="note">当前肌群</div><h3 id="recoveryMuscleName">腿</h3></div><div class="readiness-number"><strong id="recoveryReadiness">100</strong><small>% 就绪度</small></div></div>
+          <div class="chart recovery-chart" id="recoveryCurve"></div>
+          <div class="grid2">
+            <div class="field"><label>训练强度 RPE 1–10</label><input id="recoveryRpe" type="number" min="1" max="10" value="7"></div>
+            <div class="field"><label>主观酸痛 0–5</label><input id="recoverySoreness" type="number" min="0" max="5" value="2"></div>
+            <div class="field"><label>训练时长（分钟）</label><input id="recoveryDuration" type="number" min="5" max="240" value="45"></div>
+            <div class="field"><label>睡眠（小时）</label><input id="recoverySleep" type="number" min="0" max="14" step="0.5" value="7"></div>
+          </div>
+          <div class="recovery-actions">
+            <button class="btn" id="recordRecoveryTrainingBtn" type="button">记录该肌群训练</button>
+            <button class="btn ghost" id="refreshRecoveryBtn" type="button">刷新曲线</button>
+          </div>
+          <div class="note" id="recoveryEvidenceNote" style="margin-top:10px"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section" id="zhuangziSection">
+    <div class="section-title"><h2>庄子 · 30 日养心</h2><span>SQLite 本地内容 · 无需联网</span></div>
+    <div class="card zhuangzi-card">
+      <div class="between">
+        <div>
+          <div class="zhuangzi-badge" id="zhuangziDayBadge">第 1 / 30 天</div>
+          <h3 id="zhuangziTitle">正在读取本地内容…</h3>
+          <div class="note" id="zhuangziChapter"></div>
+        </div>
+        <div class="zhuangzi-ring"><strong id="zhuangziCheckedCount">0</strong><small>/30 已完成</small></div>
+      </div>
+
+      <div class="zhuangzi-progress"><i id="zhuangziProgressBar"></i></div>
+
+      <blockquote id="zhuangziQuote"></blockquote>
+
+      <div class="zhuangzi-panel">
+        <b>故事</b>
+        <p id="zhuangziStory"></p>
+      </div>
+      <div class="zhuangzi-panel">
+        <b>今天怎么理解</b>
+        <p id="zhuangziInterpretation"></p>
+      </div>
+      <div class="zhuangzi-action">
+        <span>今日一事</span>
+        <strong id="zhuangziAction"></strong>
+      </div>
+
+      <div class="dish-components" id="zhuangziTags"></div>
+
+      <div class="zhuangzi-controls">
+        <button class="btn ghost" id="zhuangziPrevBtn" type="button">← 前一天</button>
+        <button class="btn" id="zhuangziCheckBtn" type="button">✓ 今日完成</button>
+        <button class="btn ghost" id="zhuangziNextBtn" type="button">后一天 →</button>
+      </div>
+
+      <div class="note" id="zhuangziCycleNote" style="margin-top:11px">
+        本模块用于日常反思、情绪调节与生活节奏提示，不替代心理或医学治疗。
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="profile" class="page">
+  <div class="section">
+    <div class="section-title"><h2>身体资料</h2><span>仅保存在本机</span></div>
+    <div class="card">
+      <div class="field-grid">
+        <div class="field"><label>性别</label><select id="sex"><option value="male">男</option><option value="female">女</option></select></div>
+        <div class="field"><label>年龄</label><input id="age" type="number" min="14" max="100"></div>
+        <div class="field"><label>身高（cm）</label><input id="height" type="number" min="100" max="230"></div>
+        <div class="field"><label>体重（kg）</label><input id="weight" type="number" step="0.1" min="30" max="300"></div>
+        <div class="field"><label>目标</label><select id="goal"><option value="lose">减脂</option><option value="maintain">维持</option><option value="gain">增肌</option></select></div>
+        <div class="field"><label>日常活动</label><select id="activityLevel"><option value="1.2">久坐</option><option value="1.375">轻活动</option><option value="1.55">中等活动</option><option value="1.725">高活动</option></select></div>
+        <div class="field"><label>步数目标</label><input id="stepGoal" type="number" min="1000" step="500"></div>
+        <div class="field"><label>热量目标（可覆盖自动值）</label><input id="manualCalGoal" type="number" min="800" placeholder="留空=自动"></div>
+      </div>
+      <button class="btn" id="saveProfileBtn" style="width:100%;margin-top:14px">保存身体资料</button>
+      <div class="note" id="profileCalc" style="margin-top:12px"></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><h2>生活习惯负 Buff</h2><span>每天记录一次即可</span></div>
+    <div class="card">
+      <div class="field-grid">
+        <div class="field"><label>香烟（支/天）</label><input id="cigarettes" type="number" inputmode="numeric" min="0" value="0"></div>
+        <div class="field"><label>熬夜时长（小时）</label><input id="lateHours" type="number" inputmode="decimal" min="0" step="0.5" value="0"></div>
+        <div class="field"><label>啤酒（ml）</label><input id="beerMl" type="number" inputmode="decimal" min="0" value="0"></div>
+        <div class="field"><label>啤酒酒精度（%vol）</label><input id="beerAbv" type="number" inputmode="decimal" min="0" max="20" step="0.1" value="5"></div>
+        <div class="field"><label>白酒（ml）</label><input id="baijiuMl" type="number" inputmode="decimal" min="0" value="0"></div>
+        <div class="field"><label>白酒酒精度（%vol）</label><input id="baijiuAbv" type="number" inputmode="decimal" min="0" max="80" step="0.1" value="52"></div>
+      </div>
+      <div class="alert" id="alcoholCalc" style="margin-top:12px">纯酒精估算：0 g</div>
+      <button class="btn" id="saveBehaviorBtn" style="width:100%;margin-top:12px">保存今日负 Buff</button>
+      <div class="note" style="margin-top:10px">烟草没有安全暴露水平；酒精也不能把非零摄入解释成“安全”。这里的 0–100 负荷仅用于个人行为趋势，不是心血管、癌症或死亡风险评分。</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><h2>健康模式</h2><span>可同时选择</span></div>
+    <div class="card">
+      <div class="switch-row"><div><b>糖尿病</b><small>加强碳水分布、低血糖与禁食提醒</small></div><div class="switch" id="diabetesSwitch"><i></i></div></div>
+      <div class="switch-row"><div><b>痛风 / 高尿酸</b><small>加强高嘌呤、酒精、高果糖、脱水与快速减重提醒</small></div><div class="switch" id="goutSwitch"><i></i></div></div>
+      <div class="switch-row"><div><b>高血压</b><small>运动与钠摄入提示采用更保守策略</small></div><div class="switch" id="hypertensionSwitch"><i></i></div></div>
+      <div class="switch-row"><div><b>冠心病 / 其他心脏病</b><small>显示紧急联系人与胸痛急救入口</small></div><div class="switch" id="heartDiseaseSwitch"><i></i></div></div>
+      <div class="switch-row"><div><b>既往心肌梗死</b><small>显示紧急联系人，运动强度需遵循康复计划</small></div><div class="switch" id="priorMISwitch"><i></i></div></div>
+      <div class="switch-row"><div><b>既往脑卒中 / TIA</b><small>显示 B.E.F.A.S.T. 卒中识别与紧急入口</small></div><div class="switch" id="priorStrokeSwitch"><i></i></div></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><h2>紧急联系人</h2><span>仅存本机 · 可随时修改</span></div>
+    <div class="card">
+      <div class="alert red">如果出现新的持续胸痛、明显呼吸困难、意识异常，或 B.E.F.A.S.T. 任一卒中警讯，不要只联系家人，应优先呼叫 120。</div>
+      <div class="contact-editor">
+        <div class="contact-label">主要联系人</div>
+        <div class="field-grid">
+          <div class="field"><label>姓名</label><input id="ice1Name" placeholder="例如：家属"></div>
+          <div class="field"><label>关系</label><input id="ice1Relation" placeholder="例如：配偶"></div>
+        </div>
+        <div class="field"><label>手机号码</label><input id="ice1Phone" inputmode="tel" placeholder="请输入电话号码"></div>
+      </div>
+      <div class="contact-editor">
+        <div class="contact-label">备用联系人</div>
+        <div class="field-grid">
+          <div class="field"><label>姓名</label><input id="ice2Name" placeholder="例如：朋友"></div>
+          <div class="field"><label>关系</label><input id="ice2Relation" placeholder="例如：朋友"></div>
+        </div>
+        <div class="field"><label>手机号码</label><input id="ice2Phone" inputmode="tel" placeholder="请输入电话号码"></div>
+      </div>
+      <button class="btn" id="saveEmergencyContactsBtn" style="width:100%;margin-top:12px">保存紧急联系人</button>
+      <div class="emergency-actions" style="margin-top:12px">
+        <button class="btn danger" id="profileCall120Btn" type="button">☎ 中国大陆急救 120</button>
+        <button class="btn secondary" id="profileCallPrimaryBtn" type="button">☎ 呼叫主要联系人</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><h2>16:8 饮食</h2><span>可选</span></div>
+    <div class="card">
+      <div class="switch-row"><div><b>开启 16:8</b><small>默认 8 小时进食窗口 + 16 小时禁食</small></div><div class="switch" id="fastingSwitch"><i></i></div></div>
+      <div class="field-grid">
+        <div class="field"><label>进食开始时间</label><input id="eatStart" type="time" value="12:00"></div>
+        <div class="field"><label>进食时长</label><select id="eatHours"><option value="8">8 小时（16:8）</option><option value="10">10 小时（14:10）</option><option value="12">12 小时（12:12）</option></select></div>
+      </div>
+      <button class="btn secondary" id="saveFastingBtn" style="width:100%;margin-top:12px">保存饮食窗口</button>
+      <div class="alert warn" style="margin-top:12px">若有糖尿病并使用胰岛素或可能引起低血糖的降糖药，开始间歇性禁食前应先和医生确认；痛风人群也应避免脱水和快速减重。孕期、未成年人、进食障碍史或某些慢性疾病不适合自行尝试禁食。</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><h2>体重记录</h2><span>本地趋势</span></div>
+    <div class="card">
+      <div class="field-grid">
+        <div class="field"><label>日期</label><input id="weightDate" type="date"></div>
+        <div class="field"><label>体重（kg）</label><input id="weightEntry" type="number" step="0.1"></div>
+      </div>
+      <button class="btn secondary" id="addWeightBtn" style="width:100%;margin-top:12px">添加体重记录</button>
+      <div class="chart" id="profileWeightChart"></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><h2>健康报告</h2><span>本地聚合 · 无需 API</span></div>
+    <div class="card report-card">
+      <div class="report-tabs">
+        <button class="report-tab on" data-report-days="7">周报</button>
+        <button class="report-tab" data-report-days="30">月报</button>
+      </div>
+      <div class="report-hero">
+        <div><div class="note" id="reportRange">最近 7 天</div><h3 id="reportHeadline">正在计算本地趋势…</h3></div>
+        <div class="report-completeness"><strong id="reportCompleteness">0</strong><small>% 数据完整度</small></div>
+      </div>
+      <div class="report-metrics" id="reportMetrics"></div>
+      <div class="chart" id="reportTrendChart"></div>
+      <div class="report-insights" id="reportInsights"></div>
+      <div class="note">报告强调趋势变化，不生成未经验证的“综合健康分”或死亡风险概率。</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><h2>版本与数据审计</h2><span>本地可追溯</span></div>
+    <div class="card">
+      <div class="grid3">
+        <div class="stat"><div class="k">App</div><div class="v"><span id="auditAppVersion">--</span></div></div>
+        <div class="stat"><div class="k">数据库 Schema</div><div class="v"><span id="auditSchemaVersion">--</span></div></div>
+        <div class="stat"><div class="k">规则版本</div><div class="v"><span id="auditRuleVersion">--</span></div></div>
+      </div>
+      <div class="audit-grid" style="margin-top:10px">
+        <div><span>内容版本</span><b id="auditContentVersion">--</b></div>
+        <div><span>证据版本</span><b id="auditEvidenceVersion">--</b></div>
+        <div><span>Commit</span><b id="auditGitSha">--</b></div>
+      </div>
+      <div class="note" id="auditHistory" style="margin-top:10px">正在读取本地升级历史…</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="card">
+      <div class="note">营养、热量消耗、步数与照片餐盘均为估算值。糖尿病没有一个适合所有人的固定碳水比例；饮食计划应根据药物、血糖监测、体重目标和个人偏好个体化。痛风管理除饮食外通常还涉及长期尿酸管理，不能用本应用替代医疗方案。</div>
+      <div class="ref">参考框架：WHO 身体活动指南；American Diabetes Association Standards of Care 2026 的个体化营养原则；American College of Rheumatology 2020 痛风指南的一般生活方式建议。</div>
+    </div>
+  </div>
+</section>
+</div>
+
+<nav><div class="nav-inner">
+  <div class="nav-btn on" data-page="home"><span class="ico">◉</span>首页</div>
+  <div class="nav-btn" data-page="nutrition"><span class="ico">🥗</span>饮食</div>
+  <div class="nav-btn" data-page="activity"><span class="ico">🏃</span>运动</div>
+  <div class="nav-btn" data-page="recovery"><span class="ico">☯️</span>身心</div>
+  <div class="nav-btn" data-page="profile"><span class="ico">⚙️</span>我的</div>
+</div></nav>
+
+<div class="onboarding" id="onboarding">
+  <div class="onboarding-sheet">
+    <div class="between"><div><div class="emergency-kicker">首次设置 · 可跳过</div><h2>用 30 秒建立你的健康基础资料</h2></div><button class="close-x" id="skipOnboardingBtn" type="button">跳过</button></div>
+    <p class="note">这些资料只保存在当前设备。以后可以在“我的”随时修改。</p>
+    <div class="field-grid">
+      <div class="field"><label>年龄</label><input id="onAge" type="number" min="14" max="100" value="40"></div>
+      <div class="field"><label>体重 kg</label><input id="onWeight" type="number" step="0.1" value="70"></div>
+    </div>
+    <div class="onboarding-conditions">
+      <label><input type="checkbox" id="onHypertension"> 高血压</label>
+      <label><input type="checkbox" id="onHeartDisease"> 冠心病/心脏病</label>
+      <label><input type="checkbox" id="onPriorMI"> 既往心梗</label>
+      <label><input type="checkbox" id="onPriorStroke"> 既往脑卒中/TIA</label>
+      <label><input type="checkbox" id="onDiabetes"> 糖尿病</label>
+      <label><input type="checkbox" id="onGout"> 痛风/高尿酸</label>
+    </div>
+    <div class="field-grid">
+      <div class="field"><label>紧急联系人姓名（可选）</label><input id="onIceName" placeholder="家属"></div>
+      <div class="field"><label>紧急联系人电话（可选）</label><input id="onIcePhone" inputmode="tel" placeholder="手机号"></div>
+    </div>
+    <button class="btn" id="saveOnboardingBtn" style="width:100%;margin-top:14px">保存并进入动衡</button>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<script src="api-gateway.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
