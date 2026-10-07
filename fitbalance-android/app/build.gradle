@@ -13,14 +13,14 @@ android {
         applicationId 'com.fitbalance.app'
         minSdk 23
         targetSdk 35
-        versionCode 6
-        versionName '1.5.0'
+        versionCode 7
+        versionName '1.6.0'
 
         buildConfigField 'String', 'GIT_SHA', '"' + gitSha + '"'
         buildConfigField 'String', 'RULE_VERSION', '"1"'
-        buildConfigField 'String', 'CONTENT_VERSION', '"1"'
+        buildConfigField 'String', 'CONTENT_VERSION', '"2"'
         buildConfigField 'String', 'EVIDENCE_VERSION', '"1"'
-        buildConfigField 'int', 'SCHEMA_VERSION', '3'
+        buildConfigField 'int', 'SCHEMA_VERSION', '4'
     }
 
     buildFeatures {
