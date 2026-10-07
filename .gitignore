@@ -1,0 +1,19 @@
+# Android / Gradle
+.gradle/
+**/build/
+local.properties
+*.iml
+
+# Signing material - never commit
+*.jks
+*.keystore
+*.p12
+*.pfx
+signing/
+keystore.base64.txt
+credentials.txt
+
+# Local editor / OS
+.DS_Store
+Thumbs.db
+.idea/
