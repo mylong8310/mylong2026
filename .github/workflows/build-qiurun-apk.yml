@@ -1,0 +1,70 @@
+name: Publish Qiurun APK
+
+on:
+  push:
+    branches: [ qiurun-apk-20261006 ]
+    paths:
+      - 'qiurun-android/**'
+      - '.github/workflows/build-qiurun-apk.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+
+      - name: Install Android SDK packages
+        shell: bash
+        run: |
+          export ANDROID_HOME="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          export ANDROID_SDK_ROOT="$ANDROID_HOME"
+          export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH"
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Build standalone APK
+        shell: bash
+        run: |
+          export ANDROID_HOME="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          export ANDROID_SDK_ROOT="$ANDROID_HOME"
+          gradle -p qiurun-android :app:assembleDebug --no-daemon --stacktrace
+
+      - name: Rename APK
+        run: cp qiurun-android/app/build/outputs/apk/debug/app-debug.apk Qiurun-Standalone-v1.1.0.apk
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Qiurun-Standalone-APK
+          path: Qiurun-Standalone-v1.1.0.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          if gh release view v1.1.0 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload v1.1.0 Qiurun-Standalone-v1.1.0.apk --repo "$GITHUB_REPOSITORY" --clobber
+          else
+            gh release create v1.1.0 Qiurun-Standalone-v1.1.0.apk               --repo "$GITHUB_REPOSITORY"               --target "$GITHUB_SHA"               --title "秋润 v1.1.0 独立安装版"               --notes "秋润 Android 独立安装版。核心内容和交互已打包进 APK，不依赖 Grok 临时预览地址，可离线使用。"
+          fi
