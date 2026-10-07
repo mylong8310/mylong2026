@@ -20,22 +20,44 @@ import java.util.Locale;
 
 public class FitDatabase extends SQLiteOpenHelper {
     private static final String DB_NAME = "fitbalance.db";
-    private static final int DB_VERSION = 2;
+    private static final int DB_VERSION = 3;
     private static final int ZHUANGZI_TOTAL_DAYS = 30;
     private final Context context;
+    private final String appVersion;
+    private final int versionCode;
+    private final String gitSha;
+    private final String ruleVersion;
+    private final String contentVersion;
+    private final String evidenceVersion;
 
-    public FitDatabase(Context context) {
+    public FitDatabase(
+            Context context,
+            String appVersion,
+            int versionCode,
+            String gitSha,
+            String ruleVersion,
+            String contentVersion,
+            String evidenceVersion) {
         super(context, DB_NAME, null, DB_VERSION);
         this.context = context.getApplicationContext();
+        this.appVersion = appVersion;
+        this.versionCode = versionCode;
+        this.gitSha = gitSha;
+        this.ruleVersion = ruleVersion;
+        this.contentVersion = contentVersion;
+        this.evidenceVersion = evidenceVersion;
         ensureZhuangziSeeded();
         ensureHealthRulesSeeded();
         ensureStartDate();
+        ensureAuditTables();
+        recordInstalledVersion();
     }
 
     @Override
     public void onCreate(SQLiteDatabase db) {
         createCoreTables(db);
         createHealthRuleTables(db);
+        createAuditTables(db);
     }
 
     private void createCoreTables(SQLiteDatabase db) {
@@ -115,10 +137,89 @@ public class FitDatabase extends SQLiteOpenHelper {
         db.execSQL("CREATE INDEX IF NOT EXISTS idx_food_rules_disease ON food_disease_rules(disease)");
     }
 
+    private void createAuditTables(SQLiteDatabase db) {
+        db.execSQL(
+                "CREATE TABLE IF NOT EXISTS release_audit (" +
+                        "id INTEGER PRIMARY KEY AUTOINCREMENT," +
+                        "app_version TEXT NOT NULL," +
+                        "version_code INTEGER NOT NULL," +
+                        "schema_version INTEGER NOT NULL," +
+                        "rule_version TEXT NOT NULL," +
+                        "content_version TEXT NOT NULL," +
+                        "evidence_version TEXT NOT NULL," +
+                        "git_sha TEXT NOT NULL," +
+                        "installed_at TEXT NOT NULL," +
+                        "UNIQUE(app_version,version_code,git_sha)" +
+                        ")"
+        );
+
+        db.execSQL(
+                "CREATE TABLE IF NOT EXISTS migration_audit (" +
+                        "id INTEGER PRIMARY KEY AUTOINCREMENT," +
+                        "from_version INTEGER NOT NULL," +
+                        "to_version INTEGER NOT NULL," +
+                        "migrated_at TEXT NOT NULL," +
+                        "notes TEXT" +
+                        ")"
+        );
+    }
+
+    private void ensureAuditTables() {
+        SQLiteDatabase db = getWritableDatabase();
+        createAuditTables(db);
+    }
+
+    private void recordInstalledVersion() {
+        SQLiteDatabase db = getWritableDatabase();
+
+        ContentValues v = new ContentValues();
+        v.put("app_version", appVersion);
+        v.put("version_code", versionCode);
+        v.put("schema_version", DB_VERSION);
+        v.put("rule_version", ruleVersion);
+        v.put("content_version", contentVersion);
+        v.put("evidence_version", evidenceVersion);
+        v.put("git_sha", gitSha);
+        v.put("installed_at", nowIso());
+        db.insertWithOnConflict("release_audit", null, v, SQLiteDatabase.CONFLICT_IGNORE);
+
+        ContentValues meta = new ContentValues();
+        meta.put("key", "schema_version");
+        meta.put("value", String.valueOf(DB_VERSION));
+        db.insertWithOnConflict("app_meta", null, meta, SQLiteDatabase.CONFLICT_REPLACE);
+
+        meta.clear();
+        meta.put("key", "app_version");
+        meta.put("value", appVersion);
+        db.insertWithOnConflict("app_meta", null, meta, SQLiteDatabase.CONFLICT_REPLACE);
+
+        meta.clear();
+        meta.put("key", "version_code");
+        meta.put("value", String.valueOf(versionCode));
+        db.insertWithOnConflict("app_meta", null, meta, SQLiteDatabase.CONFLICT_REPLACE);
+
+        meta.clear();
+        meta.put("key", "git_sha");
+        meta.put("value", gitSha);
+        db.insertWithOnConflict("app_meta", null, meta, SQLiteDatabase.CONFLICT_REPLACE);
+    }
+
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+        int from = oldVersion;
+
         if (oldVersion < 2) {
             createHealthRuleTables(db);
+        }
+
+        if (oldVersion < 3) {
+            createAuditTables(db);
+            ContentValues migration = new ContentValues();
+            migration.put("from_version", from);
+            migration.put("to_version", 3);
+            migration.put("migrated_at", new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", Locale.US).format(new Date()));
+            migration.put("notes", "Add immutable release and migration audit tables; existing user data preserved.");
+            db.insert("migration_audit", null, migration);
         }
     }
 
@@ -403,6 +504,43 @@ public class FitDatabase extends SQLiteOpenHelper {
         } catch (Exception e) {
             return null;
         }
+    }
+
+    public String getVersionAuditJson() {
+        JSONObject out = new JSONObject();
+        JSONArray history = new JSONArray();
+        SQLiteDatabase db = getReadableDatabase();
+
+        try {
+            out.put("app_version", appVersion);
+            out.put("version_code", versionCode);
+            out.put("schema_version", DB_VERSION);
+            out.put("rule_version", ruleVersion);
+            out.put("content_version", contentVersion);
+            out.put("evidence_version", evidenceVersion);
+            out.put("git_sha", gitSha);
+
+            try (Cursor c = db.rawQuery(
+                    "SELECT app_version,version_code,schema_version,rule_version,content_version,evidence_version,git_sha,installed_at " +
+                            "FROM release_audit ORDER BY id DESC LIMIT 20",
+                    null)) {
+                while (c.moveToNext()) {
+                    JSONObject row = new JSONObject();
+                    row.put("app_version", c.getString(0));
+                    row.put("version_code", c.getInt(1));
+                    row.put("schema_version", c.getInt(2));
+                    row.put("rule_version", c.getString(3));
+                    row.put("content_version", c.getString(4));
+                    row.put("evidence_version", c.getString(5));
+                    row.put("git_sha", c.getString(6));
+                    row.put("installed_at", c.getString(7));
+                    history.put(row);
+                }
+            }
+            out.put("history", history);
+        } catch (Exception ignored) {
+        }
+        return out.toString();
     }
 
     public String evaluateFoodRiskJson(String foodId, String profileJson) {
