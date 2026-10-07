@@ -15,6 +15,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.SystemClock;
 import android.provider.MediaStore;
 import android.view.View;
 import android.webkit.JavascriptInterface;
@@ -197,33 +198,98 @@ public class MainActivity extends Activity implements SensorEventListener {
         }
     }
 
+    private String currentBootId() {
+        long bootEpochMinute = (System.currentTimeMillis() - SystemClock.elapsedRealtime()) / 60000L;
+        return String.valueOf(bootEpochMinute);
+    }
+
+    private int processStepCounter(float rawCounter) {
+        String today = todayKey();
+        String bootId = currentBootId();
+
+        String lastDate = prefs.getString("step_ledger_date", "");
+        String lastBoot = prefs.getString("step_ledger_boot", "");
+        float lastRaw = prefs.getFloat("step_ledger_raw", -1f);
+        int storedToday = prefs.getInt("step_ledger_today", 0);
+        String confidence = "sensor_delta";
+
+        int todaySteps;
+        if (lastRaw < 0) {
+            todaySteps = today.equals(lastDate) ? Math.max(0, storedToday) : 0;
+            confidence = "first_baseline";
+        } else if (bootId.equals(lastBoot) && rawCounter >= lastRaw) {
+            int delta = Math.max(0, Math.round(rawCounter - lastRaw));
+            if (today.equals(lastDate)) {
+                todaySteps = Math.max(0, storedToday + delta);
+                confidence = "sensor_delta";
+            } else {
+                // The cumulative sensor keeps counting while the app is closed.
+                // Without a midnight sample we cannot split the delta exactly,
+                // so assign the cross-day delta to today and mark it explicitly.
+                todaySteps = delta;
+                confidence = "cross_day_estimate";
+            }
+        } else {
+            // TYPE_STEP_COUNTER resets after reboot. The new raw value is
+            // the steps since this boot; preserve today's existing ledger.
+            int sinceBoot = Math.max(0, Math.round(rawCounter));
+            if (today.equals(lastDate)) {
+                todaySteps = Math.max(0, storedToday + sinceBoot);
+                confidence = "reboot_estimate";
+            } else {
+                todaySteps = sinceBoot;
+                confidence = "reboot_cross_day_estimate";
+            }
+        }
+
+        prefs.edit()
+                .putString("step_ledger_date", today)
+                .putString("step_ledger_boot", bootId)
+                .putFloat("step_ledger_raw", rawCounter)
+                .putInt("step_ledger_today", todaySteps)
+                .putString("step_ledger_confidence", confidence)
+                .putLong("step_ledger_updated_at", System.currentTimeMillis())
+                .apply();
+
+        if (database != null) {
+            database.upsertDailySteps(today, todaySteps, "TYPE_STEP_COUNTER", confidence, rawCounter, bootId);
+        }
+        return todaySteps;
+    }
+
     private int getTodayStepsInternal() {
         if (stepSensor == null) return -1;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q &&
                 checkSelfPermission(Manifest.permission.ACTIVITY_RECOGNITION) != PackageManager.PERMISSION_GRANTED) {
             return -2;
         }
-        if (currentCounter < 0) return 0;
+
+        if (currentCounter >= 0) {
+            return processStepCounter(currentCounter);
+        }
 
         String today = todayKey();
-        String storedDate = prefs.getString("step_date", "");
-        float base = prefs.getFloat("step_base", -1f);
-
-        if (!today.equals(storedDate) || base < 0 || currentCounter < base) {
-            prefs.edit()
-                    .putString("step_date", today)
-                    .putFloat("step_base", currentCounter)
-                    .apply();
-            base = currentCounter;
+        String storedDate = prefs.getString("step_ledger_date", "");
+        if (today.equals(storedDate)) {
+            return Math.max(0, prefs.getInt("step_ledger_today", 0));
         }
-        return Math.max(0, Math.round(currentCounter - base));
+        return 0;
+    }
+
+    private void pushStepsToWeb(int steps) {
+        if (webView == null) return;
+        String confidence = prefs.getString("step_ledger_confidence", "waiting");
+        String js = "window.FitNative && window.FitNative.receiveAndroidSteps(" +
+                steps + ", 'TYPE_STEP_COUNTER', '" + confidence.replace("'", "") + "');";
+        webView.post(() -> webView.evaluateJavascript(js, null));
     }
 
     @Override
     public void onSensorChanged(SensorEvent event) {
         if (event.sensor.getType() == Sensor.TYPE_STEP_COUNTER && event.values.length > 0) {
             currentCounter = event.values[0];
-            getTodayStepsInternal();
+            int steps = processStepCounter(currentCounter);
+            pushStepsToWeb(steps);
         }
     }
 
@@ -271,6 +337,25 @@ public class MainActivity extends Activity implements SensorEventListener {
             return database != null
                     ? database.evaluateFoodRiskJson(foodId, profileJson)
                     : "{\"status\":\"neutral\",\"items\":[]}";
+        }
+
+        @JavascriptInterface
+        public String getFoodCatalogJson() {
+            return database != null ? database.getFoodCatalogJson() : "[]";
+        }
+
+        @JavascriptInterface
+        public String getStepHistoryJson(int days) {
+            return database != null ? database.getStepHistoryJson(days) : "[]";
+        }
+
+        @JavascriptInterface
+        public String getStepStatusJson() {
+            int steps = getTodayStepsInternal();
+            String confidence = prefs.getString("step_ledger_confidence", "waiting");
+            return "{\"steps\":" + steps +
+                    ",\"sensorAvailable\":" + (stepSensor != null) +
+                    ",\"confidence\":\"" + confidence.replace("\"", "").replace("\\", "") + "\"}";
         }
 
         @JavascriptInterface
