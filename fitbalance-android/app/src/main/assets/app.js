@@ -1135,6 +1135,44 @@
     el('reportInsights').innerHTML=insights.map(x=>'<div class="report-insight '+x.c+'">'+x.t+'</div>').join('');
   }
 
+  function renderVersionAudit() {
+    if (!el('auditAppVersion')) return;
+    let audit = null;
+    try {
+      if (window.FitBridge && typeof FitBridge.getVersionAuditJson === 'function') {
+        audit = parseBridgeJson(FitBridge.getVersionAuditJson(), null);
+      }
+    } catch (e) {}
+
+    if (!audit) {
+      el('auditAppVersion').textContent = '未知';
+      el('auditSchemaVersion').textContent = '--';
+      el('auditRuleVersion').textContent = '--';
+      el('auditContentVersion').textContent = '--';
+      el('auditEvidenceVersion').textContent = '--';
+      el('auditGitSha').textContent = '--';
+      el('auditHistory').textContent = '当前无法读取版本审计数据。';
+      return;
+    }
+
+    el('auditAppVersion').textContent = audit.app_version || '--';
+    el('auditSchemaVersion').textContent = audit.schema_version == null ? '--' : String(audit.schema_version);
+    el('auditRuleVersion').textContent = audit.rule_version || '--';
+    el('auditContentVersion').textContent = audit.content_version || '--';
+    el('auditEvidenceVersion').textContent = audit.evidence_version || '--';
+    el('auditGitSha').textContent = String(audit.git_sha || '--').slice(0,12);
+
+    const history = Array.isArray(audit.history) ? audit.history : [];
+    if (!history.length) {
+      el('auditHistory').textContent = '这是当前设备记录到的第一个可审计版本。';
+    } else {
+      const text = history.slice(0,5).map(x =>
+        'v' + x.app_version + ' · code ' + x.version_code + ' · schema ' + x.schema_version
+      ).join(' ｜ ');
+      el('auditHistory').textContent = '本机版本历史：' + text;
+    }
+  }
+
   function renderAll() {
     renderHome();
     renderFoodLog();
@@ -1147,6 +1185,7 @@
     renderZhuangzi();
     renderFoodControls();
     renderReport();
+    renderVersionAudit();
   }
 
   function bind() {
