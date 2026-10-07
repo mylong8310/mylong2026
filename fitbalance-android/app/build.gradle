@@ -2,6 +2,9 @@ plugins {
     id 'com.android.application'
 }
 
+def releaseStorePath = System.getenv('FITBALANCE_KEYSTORE_PATH')
+def gitSha = System.getenv('FITBALANCE_GIT_SHA') ?: 'local'
+
 android {
     namespace 'com.fitbalance.app'
     compileSdk 35
@@ -10,8 +13,29 @@ android {
         applicationId 'com.fitbalance.app'
         minSdk 23
         targetSdk 35
-        versionCode 5
-        versionName '1.4.0'
+        versionCode 6
+        versionName '1.5.0'
+
+        buildConfigField 'String', 'GIT_SHA', '"' + gitSha + '"'
+        buildConfigField 'String', 'RULE_VERSION', '"1"'
+        buildConfigField 'String', 'CONTENT_VERSION', '"1"'
+        buildConfigField 'String', 'EVIDENCE_VERSION', '"1"'
+        buildConfigField 'int', 'SCHEMA_VERSION', '3'
+    }
+
+    buildFeatures {
+        buildConfig true
+    }
+
+    signingConfigs {
+        release {
+            if (releaseStorePath) {
+                storeFile file(releaseStorePath)
+                storePassword System.getenv('FITBALANCE_KEYSTORE_PASSWORD')
+                keyAlias System.getenv('FITBALANCE_KEY_ALIAS')
+                keyPassword System.getenv('FITBALANCE_KEY_PASSWORD')
+            }
+        }
     }
 
     buildTypes {
@@ -19,7 +43,11 @@ android {
             debuggable true
         }
         release {
+            debuggable false
             minifyEnabled false
+            if (releaseStorePath) {
+                signingConfig signingConfigs.release
+            }
         }
     }
 }
