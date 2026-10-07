@@ -57,7 +57,14 @@ public class MainActivity extends Activity implements SensorEventListener {
         getWindow().getDecorView().setSystemUiVisibility(0);
 
         prefs = getSharedPreferences("fitbalance_native", MODE_PRIVATE);
-        database = new FitDatabase(this);
+        database = new FitDatabase(
+                this,
+                BuildConfig.VERSION_NAME,
+                BuildConfig.VERSION_CODE,
+                BuildConfig.GIT_SHA,
+                BuildConfig.RULE_VERSION,
+                BuildConfig.CONTENT_VERSION,
+                BuildConfig.EVIDENCE_VERSION);
 
         webView = new WebView(this);
         webView.setBackgroundColor(Color.rgb(9, 14, 11));
@@ -267,8 +274,13 @@ public class MainActivity extends Activity implements SensorEventListener {
         }
 
         @JavascriptInterface
+        public String getVersionAuditJson() {
+            return database != null ? database.getVersionAuditJson() : "{}";
+        }
+
+        @JavascriptInterface
         public String appVersion() {
-            return "1.4.0";
+            return BuildConfig.VERSION_NAME;
         }
     }
 
