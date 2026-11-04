@@ -44,8 +44,9 @@
 - [x] 单独创建实验分支，未改动原 PR、原数据库、业务 JS
 - [x] 新 CSS 覆盖层与原始 HTML 导航结构已提交
 - [x] nav JS 既有事件按 `.nav-btn` + `dataset.page` 匹配，新的 button 结构仍满足接口
-- [ ] 重新验证使用独立包名的 Android Debug APK CI 构建
-- [ ] 手机端视觉截图对照、交互/滚动/性能测试
+- [x] 独立包名 Android Debug APK 云端构建成功：GitHub Actions run 41924986220（2026-11-05，success）。下载 Artifact 的 APK SHA-256：`cb0981771b52eb475ffbb47b2dd70172503025567ea819bbd120ba405acddad6`；存在 `assets/index.html` 与 `assets/app-taste.css`
+- [x] Chromium 模拟移动端 390px 截图 A/B 对照；五个页面 JS 导航切换成功，未观察到脚本异常（这不是 Android 真机验收）
+- [ ] Android 真机视觉、点击命中/滚动/性能测试，尤其是恢复页切往“我的”的触屏命中（浏览器模拟检测到潜在 SVG 遮挡，需复核）
 - [ ] 用户审美复评；评分达到门槛后再决定是否合并
 
 > 本文件属于 UI 实验，不能作为 Android APK 已成功编译、手机已运行或功能已全面验收的证明。
