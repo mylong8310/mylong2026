@@ -5,7 +5,7 @@
 - 独立实验分支：`experiment/fitbalance-taste-v01`
 - 来源：用户提供的跑步 App 前后对比图；按 `app-design-taste` Beta Skill 的禁止项 / 设计系统 / 风格方向 / 交付自检进行审查。
 - 不将跑步 App 的数值、行业文案、配色完整移植到 FitBalance。
-- **原有 JS / Android / 数据库 / 业务逻辑未修改。** API 仍保持原版策略。
+- **原有 JS / 数据库 / 业务逻辑未修改。** API 仍保持原版策略。实验 Debug 包配置独立 `applicationIdSuffix '.taste'`、独立 app label，防止覆盖正式版与用户本机健康数据。
 
 ## A / B
 
@@ -44,7 +44,7 @@
 - [x] 单独创建实验分支，未改动原 PR、原数据库、业务 JS
 - [x] 新 CSS 覆盖层与原始 HTML 导航结构已提交
 - [x] nav JS 既有事件按 `.nav-btn` + `dataset.page` 匹配，新的 button 结构仍满足接口
-- [ ] 真实 Android Debug APK CI 构建
+- [ ] 重新验证使用独立包名的 Android Debug APK CI 构建
 - [ ] 手机端视觉截图对照、交互/滚动/性能测试
 - [ ] 用户审美复评；评分达到门槛后再决定是否合并
 
