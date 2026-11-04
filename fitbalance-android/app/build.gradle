@@ -40,7 +40,10 @@ android {
 
     buildTypes {
         debug {
+            // Isolated experiment: never replace the user's installed FitBalance app or its local data.
             debuggable true
+            applicationIdSuffix '.taste'
+            versionNameSuffix '-taste-beta'
         }
         release {
             debuggable false
