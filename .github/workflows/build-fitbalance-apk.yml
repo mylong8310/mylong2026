@@ -2,7 +2,7 @@ name: Validate and Publish FitBalance Android
 
 on:
   push:
-    branches: [ fitbalance-apk-20261006 ]
+    branches: [ fitbalance-apk-20261006, 'experiment/fitbalance-taste-v01', 'experiment/fitbalance-art-direction-v02' ]
     paths:
       - 'fitbalance-android/**'
       - '.github/workflows/build-fitbalance-apk.yml'
@@ -31,6 +31,7 @@ jobs:
         shell: bash
         run: |
           node --check fitbalance-android/app/src/main/assets/app.js
+          if [ -f fitbalance-android/app/src/main/assets/app-taste-v02.js ]; then node --check fitbalance-android/app/src/main/assets/app-taste-v02.js; fi
           node --check fitbalance-android/app/src/main/assets/api-gateway.js
           python - <<'PY'
           import json
@@ -83,7 +84,7 @@ jobs:
           retention-days: 14
 
   publish-release:
-    if: ${{ github.event_name == 'workflow_dispatch' && inputs.publish_release }}
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.publish_release && github.ref_name == 'fitbalance-apk-20261006' }}
     needs: validate
     runs-on: ubuntu-latest
     timeout-minutes: 25
